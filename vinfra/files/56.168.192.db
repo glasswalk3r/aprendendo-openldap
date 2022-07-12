@@ -1,0 +1,13 @@
+$TTL	86400
+@               IN SOA          vinfra.local.br.     root.vinfra.local.br. (
+                                2022110701      ; serial
+                                3h              ; refresh
+                                1h              ; retry
+                                1w              ; expiry
+                                1d )            ; minimum
+
+         IN       NS       vinfra.local.br.
+80       IN       PTR      master.local.br.
+81       IN       PTR      slave.local.br.
+82       IN       PTR      client.local.br.
+85       IN       PTR      vinfra.local.br.

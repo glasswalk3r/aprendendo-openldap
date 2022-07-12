@@ -1,0 +1,55 @@
+---
+- name: Configures master server
+  hosts: all
+  become: true
+  gather_facts: 'no'
+  tasks:
+    - name: Copy resolver configuration
+      ansible.builtin.copy:
+        src: files/resolv.conf
+        dest: /etc/resolv.conf
+        owner: root
+        group: root
+        mode: '0644'
+    - name: Disable NetworkManager to not change resolver configuration
+      ansible.builtin.systemd:
+        name: NetworkManager.service
+        state: stopped
+        enabled: 'no'
+    - name: Install packages
+      yum:
+        name:
+          - openldap
+          - openldap-clients
+          - openldap-servers
+          - migrationtools
+          - python36-cryptography  # for Ansible community.crypto
+        state: present
+        update_cache: 'yes'
+    - name: Generate the hashed password for OpenLDAP admin
+      # TODO: read the password from an environment variable
+      ansible.builtin.command: slappasswd -s 123456 -n
+      register: admin_password
+    - name: Create private key (RSA, 4096 bits)
+      community.crypto.openssl_privatekey:
+        # TODO: DRY
+        path: /etc/openldap/certs/priv.pem
+    - name: Create certificate signing request (CSR) for self-signed certificate
+      community.crypto.openssl_csr_pipe:
+        # TODO: DRY
+        privatekey_path: /etc/openldap/certs/priv.pem
+        common_name: master.local.br
+        organization_name: Foobar
+        country_name: BR
+        state_or_province_name: São Paulo
+        locality_name: São Paulo
+        email_address: glasswalk3r@yahoo.com.br
+        organizational_unit_name: Training
+      register: csr
+    - name: Create self-signed certificate from CSR
+      community.crypto.x509_certificate:
+        path: /etc/openldap/certs/cert.pem
+        csr_content: "{{ csr.csr }}"
+        # TODO: DRY
+        privatekey_path: /etc/openldap/certs/priv.pem
+        provider: selfsigned

@@ -1,0 +1,54 @@
+---
+- name: Configures vinfra server
+  hosts: all
+  become: true
+  gather_facts: 'no'
+  tasks:
+    - name: Install packages
+      yum:
+        name:
+          - bind
+          - bind-utils
+          - httpd
+          - vsftpd
+        state: present
+        update_cache: 'yes'
+    - name: Copy Bind named.conf configuration file
+      # TODO: Use templates to setup IP's on Bind configuration by using
+      # Vagrantfile defined values
+      ansible.builtin.copy:
+        src: files/named.conf
+        dest: /etc/named.conf
+        owner: root
+        group: named
+        mode: '0640'
+    - name: Copy Bind local zone definition file
+      ansible.builtin.copy:
+        src: files/local.br.db
+        dest: /var/named/local.br.db
+        owner: root
+        group: named
+        mode: '0640'
+    - name: Copy Bind reverse local zone definition file
+      ansible.builtin.copy:
+        src: files/56.168.192.db
+        dest: /var/named/56.168.192.db
+        owner: root
+        group: named
+        mode: '0640'
+    - name: Reload Bind unit
+      ansible.builtin.systemd:
+        name: named.service
+        state: reloaded
+    - name: Copy resolver configuration
+      ansible.builtin.copy:
+        src: files/resolv.conf
+        dest: /etc/resolv.conf
+        owner: root
+        group: root
+        mode: '0644'
+    - name: Disable NetworkManager to not change resolver configuration
+      ansible.builtin.systemd:
+        name: NetworkManager.service
+        state: stopped
+        enabled: 'no'

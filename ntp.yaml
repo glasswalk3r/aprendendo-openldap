@@ -1,0 +1,16 @@
+---
+- hosts: all
+  become: 'yes'
+  roles:
+    - geerlingguy.ntp
+  vars:
+    ntp_timezone: America/Sao_Paulo
+    ntp_enabled: true
+    ntp_package: ntp
+    ntp_config_file: /etc/ntp.conf
+    ntp_manage_config: true
+    ntp_tinker_panic: true
+    ntp_servers:
+      - server 200.160.7.186 iburst
+      - server 200.20.186.76 iburst
+      - server 200.186.125.195 iburst
