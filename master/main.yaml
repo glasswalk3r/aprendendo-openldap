@@ -3,6 +3,9 @@
   hosts: all
   become: true
   gather_facts: 'no'
+  vars:
+    openssl_private_key: /etc/openldap/certs/priv.pem
+    openssl_certificate: /etc/openldap/certs/cert.pem
   tasks:
     - name: Copy resolver configuration
       ansible.builtin.copy:
@@ -26,18 +29,23 @@
           - python36-cryptography  # for Ansible community.crypto
         state: present
         update_cache: 'yes'
-    - name: Generate the hashed password for OpenLDAP admin
+    - name: Generate the hashed password for OpenLDAP manager
       # TODO: read the password from an environment variable
-      ansible.builtin.command: slappasswd -s 123456 -n
-      register: admin_password
-    - name: Create private key (RSA, 4096 bits)
+      ansible.builtin.command: 'slappasswd -s 123456 -n'
+      register: manager_password
+    - name: Create a bootstrap LDIF file with OpenLDAP manager password
+      ansible.builtin.template:
+        src: templates/db_bootstrap.ldif
+        dest: /root/db_bootstrap.ldif
+        owner: root
+        group: root
+        mode: '0400'
+    - name: 'Create private key (RSA, 4096 bits)'
       community.crypto.openssl_privatekey:
-        # TODO: DRY
-        path: /etc/openldap/certs/priv.pem
+        path: '{{ openssl_private_key }}'
     - name: Create certificate signing request (CSR) for self-signed certificate
       community.crypto.openssl_csr_pipe:
-        # TODO: DRY
-        privatekey_path: /etc/openldap/certs/priv.pem
+        privatekey_path: '{{ openssl_private_key }}'
         common_name: master.local.br
         organization_name: Foobar
         country_name: BR
@@ -48,8 +56,49 @@
       register: csr
     - name: Create self-signed certificate from CSR
       community.crypto.x509_certificate:
-        path: /etc/openldap/certs/cert.pem
-        csr_content: "{{ csr.csr }}"
-        # TODO: DRY
-        privatekey_path: /etc/openldap/certs/priv.pem
+        path: '{{ openssl_certificate }}'
+        csr_content: '{{ csr.csr }}'
+        privatekey_path: '{{ openssl_private_key }}'
         provider: selfsigned
+    - name: Fixing permissions for TLS certificate
+      ansible.builtin.file:
+        path: '{{ openssl_certificate }}'
+        owner: ldap
+        group: ldap
+    - name: Fixing permissions for private key
+      ansible.builtin.file:
+        path: '{{ openssl_private_key }}'
+        owner: ldap
+        group: ldap
+        mode: '0600'
+    - name: Database configuration
+      ansible.builtin.copy:
+        src: /usr/share/openldap-servers/DB_CONFIG.example
+        remote_src: 'yes'
+        dest: /var/lib/ldap/DB_CONFIG
+        owner: ldap
+        group: ldap
+        mode: '0644'
+    - name: Testing the database configuration
+      ansible.builtin.command: slaptest -u
+    - name: Enabling the slapd daemon
+      ansible.builtin.systemd:
+        name: slapd.service
+        state: started
+        enabled: 'yes'
+    - name: 'Testing if required schemas are in place (idempotence)'
+      ansible.builtin.command: ldapsearch -LLL -Y EXTERNAL -H ldapi:/// -b cn={1}cosine,cn=schema,cn=config cn  # yamllint disable-line rule:line-length
+      ignore_errors: 'yes'
+      register: schema_search
+    - name: Adding required LDAP schemas
+      ansible.builtin.command: 'ldapadd -Y EXTERNAL -H ldapi:/// -D cn=config -f /etc/openldap/schema/{{ item }}'  # yamllint disable-line rule:line-length
+      when: schema_search.rc == 32  # exit code for "no such object" error
+      loop:
+        - cosine.ldif
+        - nis.ldif
+        - inetorgperson.ldif
+        - misc.ldif
+    - name: Configuring rsyslog to accept OpenLDAP logging
+      ansible.builtin.copy:
+        src: files/rsyslog.conf
+        dest: /etc/rsyslog.d/openldap.conf
