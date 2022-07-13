@@ -21,7 +21,7 @@ Vagrant.configure('2') do |config|
     vb.linked_clone = true
   end
 
-  config.vm.provision 'shell', inline: 'yum makecache fast'
+  config.vm.provision 'shell', inline: 'yum makecache fast && yum upgrade -y && yum install python3 -y'
 
   config.vm.provision :ansible do |ansible|
     ansible.playbook = 'ntp.yaml'
