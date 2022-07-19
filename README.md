@@ -23,5 +23,5 @@ O uso de um *virtual environment* do Python é recomendado.
 
 - O livro [OpenLDAP Ultimate](http://www.anahuac.eu/livros-em-cc-by/) do
 Anahuac, em português.
-- [Documentação oficial](https://openldap.org/doc/) em inglês.
-- [LDAP for Rocket Scientists](https://www.zytrax.com/books/ldap/) em inglês.
+- [Documentação oficial](https://openldap.org/doc/), em inglês.
+- [LDAP for Rocket Scientists](https://www.zytrax.com/books/ldap/), em inglês.
