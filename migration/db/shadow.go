@@ -28,7 +28,7 @@ type ShadowDBEntry struct {
 const ShadowFilePath string = "/etc/shadow"
 const ShadowFieldSep string = ":"
 
-func NewDB(filePath string) ShadowDB {
+func NewDB(filePath string) (ShadowDB, error) {
 
 	// basically to enable unit testing
 	if filePath == "" {
@@ -38,8 +38,7 @@ func NewDB(filePath string) ShadowDB {
 	readFile, err := os.Open(filePath)
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to read %s: %s", filePath, err)
-		os.Exit(1)
+		return ShadowDB{}, err
 	}
 
 	defer readFile.Close()
@@ -55,7 +54,7 @@ func NewDB(filePath string) ShadowDB {
 		db.rawEntries[fields[0]] = shadowDBAttribs{fields[1], fields[2], fields[3], fields[4], fields[5], fields[6], fields[7], fields[8]}
 	}
 
-	return db
+	return db, nil
 }
 
 func (db *ShadowDB) UserEntry(user string) (ShadowDBEntry, error) {
@@ -80,4 +79,53 @@ func (db *ShadowDB) UserEntry(user string) (ShadowDBEntry, error) {
 		attribs[6],
 		attribs[7],
 	}, nil
+}
+
+func (e *ShadowDBEntry) ToLDIF() []string {
+	// 1 + attributes
+	var dump [9]string
+	dump[0] = "objectClass: shadowAccount"
+	lastInUse := 1
+
+	if e.userPassword != "" {
+		dump[1] = fmt.Sprintf("userPassword: {crypt}%s", e.userPassword)
+		lastInUse++
+	}
+
+	if e.shadowLastChange != "" {
+		dump[2] = fmt.Sprintf("shadowLastChange: %s", e.shadowLastChange)
+		lastInUse++
+	}
+
+	if e.shadowMin != "" {
+		dump[3] = fmt.Sprintf("shadowMin: %s", e.shadowMin)
+		lastInUse++
+	}
+
+	if e.shadowMax != "" {
+		dump[4] = fmt.Sprintf("shadowMax: %s", e.shadowMax)
+		lastInUse++
+	}
+
+	if e.shadowWarning != "" {
+		dump[5] = fmt.Sprintf("shadowWarning: %s", e.shadowWarning)
+		lastInUse++
+	}
+
+	if e.shadowInactive != "" {
+		dump[6] = fmt.Sprintf("shadowInactive: %s", e.shadowInactive)
+		lastInUse++
+	}
+
+	if e.shadowExpire != "" {
+		dump[7] = fmt.Sprintf("shadowExpire: %s", e.shadowExpire)
+		lastInUse++
+	}
+
+	if e.shadowFlag != "" {
+		dump[8] = fmt.Sprintf("shadowFlag: %s", e.shadowFlag)
+		lastInUse++
+	}
+
+	return dump[:lastInUse]
 }
