@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	// "migration.openldap.org/passwd/db/shadow"
+	"migration.openldap.org/passwd/db/shadow"
 	"migration.openldap.org/passwd/db/passwd"
 )
 
@@ -33,12 +33,12 @@ func main() {
 	flag.IntVar(&gidAbove, "ignore-gid-above", defaultAbove, fmt.Sprintf("Specify the maximum GID to consider retrieving, default is %d", defaultAbove))
 	flag.Parse()
 
-	// _, err := shadow.ReadDB()
-	//
-	// if err != nil {
-	// 	fmt.Fprintf(os.Stderr, "%s\n", err)
-	// 	os.Exit(1)
-	// }
+	shadowDB, err := shadow.ReadDB()
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
+	}
 
 	passwdDB, err := passwd.ReadDB(uidBelow, uidAbove, gidBelow, gidAbove)
 	if err != nil {
@@ -49,5 +49,14 @@ func main() {
 	for _, entry := range passwdDB {
 		dump := entry.ToLDIF(dnsDomain, mailHost)
 		fmt.Println(strings.Join(dump, "\n"))
+		shadowEntry, err := shadowDB.UserEntry(entry.User)
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s\n", err)
+			os.Exit(1)
+		}
+
+		fmt.Println(strings.Join(shadowEntry.ToLDIF(), "\n"))
+		fmt.Println()
 	}
 }

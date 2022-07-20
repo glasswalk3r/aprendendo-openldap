@@ -16,7 +16,7 @@ type DBEntry struct {
 	UID     int
 	GID     int
 	GECOS   GECOS
-	Homedir string
+	HomeDir string
 	Shell   string
 }
 
@@ -66,7 +66,7 @@ func NewDBEntry(user []string) (DBEntry, error) {
 }
 
 func (e *DBEntry) ToLDIF(dnsDomain, mailHost string) []string {
-	var dump [15]string
+	var dump [19]string
 	dump[0] = fmt.Sprintf("dn: uid=%s,ou=People", e.User)
 	dump[1] = fmt.Sprintf("uid: %s", e.User)
 	lastAdded := 1
@@ -112,6 +112,18 @@ func (e *DBEntry) ToLDIF(dnsDomain, mailHost string) []string {
 		lastAdded++
 		dump[lastAdded] = fmt.Sprintf("objectClass: %s", value)
 	}
+
+	lastAdded++
+	dump[lastAdded] = fmt.Sprintf("loginShell: %s", e.Shell)
+
+	lastAdded++
+	dump[lastAdded] = fmt.Sprintf("uidNumber: %d", e.UID)
+
+	lastAdded++
+	dump[lastAdded] = fmt.Sprintf("gidNumber: %d", e.GID)
+
+	lastAdded++
+	dump[lastAdded] = fmt.Sprintf("homeDirectory: %s", e.HomeDir)
 
 	return dump[:lastAdded]
 }
