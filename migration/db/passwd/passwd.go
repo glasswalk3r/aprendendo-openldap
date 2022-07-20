@@ -48,18 +48,14 @@ func NewDBEntry(user []string) (DBEntry, error) {
 
 // NewGECOS is the constructor for the GECOS struct
 func NewGECOS(gecos string) GECOS {
-	fields := strings.Split(gecos, ",")
-	totalExpectedFields := 4
+	current := strings.Split(gecos, ",")
+	expected := [4]string{}
 
-	if len(fields) < totalExpectedFields {
-		lastIndex := len(fields) - 1
-
-		for i := lastIndex; i < totalExpectedFields; i++ {
-			fields = append(fields, "")
-		}
+	for i, _ := range current {
+		expected[i] = current[i]
 	}
 
-	return GECOS{fields[0], fields[1], fields[2], fields[3]}
+	return GECOS{expected[0], expected[1], expected[2], expected[3]}
 }
 
 // ReadDB reads all the users from the /etc/passwd and return those
