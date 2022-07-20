@@ -2,10 +2,10 @@ package shadow
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
-	"errors"
 )
 
 type shadowDBAttribs [8]string

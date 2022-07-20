@@ -1,8 +1,9 @@
 package shadow
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 const mockDBFilename string = "mock.txt"
