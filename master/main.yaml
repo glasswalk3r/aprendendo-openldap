@@ -99,6 +99,37 @@
         - inetorgperson.ldif
         - misc.ldif
 
+    - name: Manage local user group
+      ansible.builtin.group:
+        name: it
+        state: present
+
+    - name: Manage Linux local users
+      ansible.builtin.user:
+        name: '{{ item["login"] }}'
+        comment: '{{ item["fullname"] }},571,+551155422748,+551155422748'
+        append: 'yes'
+        create_home: 'yes'
+        shell: /bin/bash
+        state: present
+        groups:
+          - it
+        password: '{{ item["password"] }}'
+        password_expire_max: 365
+        password_expire_min: 15
+      loop:
+        - {"login": "marcos", "fullname": "Marcos Pitanga", "password": "$5$VACmpTmOAHpIVLqZ$HNj.0nxssyymqCO1ALZ4I6bFjDEOKGNmmK8ByaA9q10"}  # yamllint disable-line rule:line-length
+        - {"login": "alves", "fullname": "Alves Silva", "password": "$5$VACmpTmOAHpIVLqZ$HNj.0nxssyymqCO1ALZ4I6bFjDEOKGNmmK8ByaA9q10"}  # yamllint disable-line rule:line-length
+        - {"login": "arthur", "fullname": "Arthur Moura", "password": "$5$VACmpTmOAHpIVLqZ$HNj.0nxssyymqCO1ALZ4I6bFjDEOKGNmmK8ByaA9q10"}  # yamllint disable-line rule:line-length
+        - {"login": "nathalia", "fullname": "Nathalia Lopes", "password": "$5$VACmpTmOAHpIVLqZ$HNj.0nxssyymqCO1ALZ4I6bFjDEOKGNmmK8ByaA9q10"}  # yamllint disable-line rule:line-length
+        - {"login": "pinguim", "fullname": "Aptenodytes Forsteri", "password": "$5$VACmpTmOAHpIVLqZ$HNj.0nxssyymqCO1ALZ4I6bFjDEOKGNmmK8ByaA9q10"}  # yamllint disable-line rule:line-length
+
+    - name: Setup migrate-passwd
+      ansible.builtin.copy:
+        src: '../migration/migrate-passwd'
+        dest: '/usr/local/sbin/migrate-passwd'
+        mode: '0500'
+
     - name: 'Testing if monitor access is already configured (idempotence)'
       ansible.builtin.command: ldapsearch -LLL -Y EXTERNAL -H ldapi:/// -b cn=config '(olcDatabase={1}monitor)' -Q  # yamllint disable-line rule:line-length
       ignore_errors: 'yes'
@@ -125,5 +156,3 @@
         name: rsyslog.service
         state: restarted
         enabled: 'yes'
-    # - name: Add local users
-    # TODO: add all local users and migrate them to OpenLDAP
