@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"migration.openldap.org/passwd/db/shadow"
 	"migration.openldap.org/passwd/db/passwd"
+	"migration.openldap.org/passwd/db/shadow"
 )
 
 const defaultDNSDomain string = "foobar.org"
@@ -47,7 +47,7 @@ func main() {
 	}
 
 	for _, entry := range passwdDB {
-		dump := entry.ToLDIF(dnsDomain, mailHost)
+		dump := entry.ToLDIF(dnsDomain, mailHost, baseDN)
 		fmt.Println(strings.Join(dump, "\n"))
 		shadowEntry, err := shadowDB.UserEntry(entry.User)
 

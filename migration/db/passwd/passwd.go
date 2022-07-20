@@ -65,9 +65,9 @@ func NewDBEntry(user []string) (DBEntry, error) {
 	return DBEntry{user[0], int(uid), int(gid), gecos, user[5], user[6]}, nil
 }
 
-func (e *DBEntry) ToLDIF(dnsDomain, mailHost string) []string {
+func (e *DBEntry) ToLDIF(dnsDomain, mailHost, baseDN string) []string {
 	var dump [19]string
-	dump[0] = fmt.Sprintf("dn: uid=%s,ou=People", e.User)
+	dump[0] = fmt.Sprintf("dn: uid=%s,ou=People,%s", e.User, baseDN)
 	dump[1] = fmt.Sprintf("uid: %s", e.User)
 	lastAdded := 1
 
@@ -86,29 +86,39 @@ func (e *DBEntry) ToLDIF(dnsDomain, mailHost string) []string {
 		dump[lastAdded] = fmt.Sprintf("homePhone: %s", e.GECOS.HomePhone)
 	}
 
+	objectClasses := []string{"posixAccount", "top"}
+
 	if e.GECOS.FullName != "" {
 		lastAdded++
 		pn := e.GECOS.SplitName()
 		dump[lastAdded] = fmt.Sprintf("givenName: %s", pn.GivenName)
 		lastAdded++
 		dump[lastAdded] = fmt.Sprintf("sn: %s", pn.Surname)
+		lastAdded++
+		dump[lastAdded] = fmt.Sprintf("cn: %s", e.GECOS.FullName)
+
+		lastAdded++
+		dump[lastAdded] = fmt.Sprintf("mail: %s@%s", e.User, dnsDomain)
+
+		if mailHost != "" {
+			lastAdded++
+			dump[lastAdded] = fmt.Sprintf("mailRoutingAddress: %s@%s", e.User, mailHost)
+			lastAdded++
+			dump[lastAdded] = fmt.Sprintf("mailHost: %s", mailHost)
+			lastAdded++
+			dump[lastAdded] = "objectClass: inetLocalMailRecipient"
+		}
+
+		objectClasses = append(objectClasses, "person")
+		objectClasses = append(objectClasses, "organizationalPerson")
+		objectClasses = append(objectClasses, "inetOrgPerson")
+	} else {
+		objectClasses = append(objectClasses, "account")
+		lastAdded++
+		dump[lastAdded] = fmt.Sprintf("cn: %s", e.User)
 	}
 
-	lastAdded++
-	dump[lastAdded] = fmt.Sprintf("mail: %s@%s", e.User, dnsDomain)
-
-	if mailHost != "" {
-		lastAdded++
-		dump[lastAdded] = fmt.Sprintf("mailRoutingAddress: %s@%s", e.User, mailHost)
-		lastAdded++
-		dump[lastAdded] = fmt.Sprintf("mailHost: %s", mailHost)
-		lastAdded++
-		dump[lastAdded] = "objectClass: inetLocalMailRecipient"
-	}
-
-	hardCoded := []string{"person", "organizationalPerson", "inetOrgPerson", "posixAccount", "top"}
-
-	for _, value := range hardCoded {
+	for _, value := range objectClasses {
 		lastAdded++
 		dump[lastAdded] = fmt.Sprintf("objectClass: %s", value)
 	}
@@ -125,7 +135,7 @@ func (e *DBEntry) ToLDIF(dnsDomain, mailHost string) []string {
 	lastAdded++
 	dump[lastAdded] = fmt.Sprintf("homeDirectory: %s", e.HomeDir)
 
-	return dump[:lastAdded]
+	return dump[:lastAdded+1]
 }
 
 // NewGECOS is the constructor for the GECOS struct
