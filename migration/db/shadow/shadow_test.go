@@ -31,7 +31,7 @@ func TestUserEntry(t *testing.T) {
 	expected := ShadowDBEntry{"uselesspassword", "18729", "0", "99999", "7", "", "", ""}
 	entry, err := db.UserEntry(userEntry)
 	assert.Nilf(t, err, "Error when trying to retrieve '%s' entry", userEntry)
-	assert.EqualValuesf(t, expected, entry, "%v not equal to %v", entry, expected)
+	assert.EqualValues(t, expected, entry)
 }
 
 func TestUserEntryNotFound(t *testing.T) {
