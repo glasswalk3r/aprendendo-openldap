@@ -1,0 +1,3 @@
+daemon:x:999:999:System Daemon:/usr/local/foobar:/bin/false
+alceu:x:1000:1000:Alceu Rodrigues de Freitas Junior,571,+551155422748,+551155422748:/home/alceu:/bin/bash
+johndoe:x:2001:2001:John Doe:/home/johndoe:/bin/bash
