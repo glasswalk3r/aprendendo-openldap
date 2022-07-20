@@ -1,4 +1,4 @@
-package shadow
+package db
 
 import (
 	"bufio"
@@ -28,13 +28,13 @@ type ShadowDBEntry struct {
 const ShadowFilePath string = "/etc/shadow"
 const ShadowFieldSep string = ":"
 
-func NewDB(filePath string) (ShadowDB, error) {
+// ReadDB is basically a shortcut to NewDBFromFile, using by default the standard path to the shadow file (see ShadowFilePath constant)
+func ReadDB() (ShadowDB, error) {
+	return ReadDBFromFile(ShadowFilePath)
+}
 
-	// basically to enable unit testing
-	if filePath == "" {
-		filePath = ShadowFilePath
-	}
-
+// ReadDBFromFile reads a text file that has lines in the format documented in shadow section 5 manpage
+func ReadDBFromFile(filePath string) (ShadowDB, error) {
 	readFile, err := os.Open(filePath)
 
 	if err != nil {

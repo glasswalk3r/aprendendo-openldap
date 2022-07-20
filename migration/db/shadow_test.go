@@ -1,4 +1,4 @@
-package shadow
+package db
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -9,8 +9,8 @@ const mockDBFilename string = "mock.txt"
 const userEntry string = "johndoe"
 const userPassword string = "uselesspassword"
 
-func TestNewDB(t *testing.T) {
-	db, err := NewDB(mockDBFilename)
+func TestReadDBFromFile(t *testing.T) {
+	db, err := ReadDBFromFile(mockDBFilename)
 	assert.Nilf(t, err, "Unexpected error: '%s'", err)
 	assert.Equal(t, 1, len(db.rawEntries))
 	attribs, ok := db.rawEntries[userEntry]
@@ -18,15 +18,15 @@ func TestNewDB(t *testing.T) {
 	assert.Equal(t, userPassword, attribs[0])
 }
 
-func TestNewDBInvalidFilePath(t *testing.T) {
-	db, err := NewDB("/foobar/foo/bar")
+func TestReadDBFromFileInvalidFilePath(t *testing.T) {
+	db, err := ReadDBFromFile("/foobar/foo/bar")
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "no such file")
 	assert.Equalf(t, 0, len(db.rawEntries), "Unexpected content: %v", db)
 }
 
 func TestUserEntry(t *testing.T) {
-	db, err := NewDB(mockDBFilename)
+	db, err := ReadDBFromFile(mockDBFilename)
 	assert.Nilf(t, err, "Unexpected error: '%s'", err)
 	expected := ShadowDBEntry{"uselesspassword", "18729", "0", "99999", "7", "", "", ""}
 	entry, err := db.UserEntry(userEntry)
@@ -35,7 +35,7 @@ func TestUserEntry(t *testing.T) {
 }
 
 func TestUserEntryNotFound(t *testing.T) {
-	db, err := NewDB(mockDBFilename)
+	db, err := ReadDBFromFile(mockDBFilename)
 	entry, err := db.UserEntry("yadayada")
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "not found")
@@ -44,7 +44,7 @@ func TestUserEntryNotFound(t *testing.T) {
 }
 
 func TestToLDIF(t *testing.T) {
-	db, _ := NewDB(mockDBFilename)
+	db, _ := ReadDBFromFile(mockDBFilename)
 	entry, _ := db.UserEntry(userEntry)
 	expected := []string{
 		"objectClass: shadowAccount",
