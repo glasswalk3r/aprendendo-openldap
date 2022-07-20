@@ -11,7 +11,7 @@ olcRootDN: cn=Manager,dc=local,dc=br
 dn: olcDatabase={2}hdb,cn=config
 changetype: modify
 replace: olcRootPW
-olcRootPW: '{{ manager_password.stdout }}'
+olcRootPW: {{ manager_password.stdout }}
 
 dn: olcDatabase={2}hdb,cn=config
 changetype: modify
