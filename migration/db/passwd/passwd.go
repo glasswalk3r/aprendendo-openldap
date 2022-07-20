@@ -2,6 +2,7 @@ package passwd
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -28,6 +29,24 @@ type GECOS struct {
 	HomePhone string
 }
 
+type PersonName struct {
+	GivenName string
+	Surname   string
+}
+
+// Splits a GECOS FullName between given name and surname.
+func (g *GECOS) SplitName() PersonName {
+	if g.FullName == "" {
+		return PersonName{}
+	}
+
+	parts := strings.Split(g.FullName, " ")
+	return PersonName{
+		parts[0],
+		strings.Join(parts[1:], " "),
+	}
+}
+
 // NewDBEntry is the constructor for the DBEntry struct
 func NewDBEntry(user []string) (DBEntry, error) {
 	gecos := NewGECOS(user[4])
@@ -44,6 +63,57 @@ func NewDBEntry(user []string) (DBEntry, error) {
 	}
 
 	return DBEntry{user[0], int(uid), int(gid), gecos, user[5], user[6]}, nil
+}
+
+func (e *DBEntry) ToLDIF(dnsDomain, mailHost string) []string {
+	var dump [15]string
+	dump[0] = fmt.Sprintf("dn: uid=%s,ou=People", e.User)
+	dump[1] = fmt.Sprintf("uid: %s", e.User)
+	lastAdded := 1
+
+	if e.GECOS.WorkPhone != "" {
+		lastAdded++
+		dump[lastAdded] = fmt.Sprintf("telephoneNumber: %s", e.GECOS.WorkPhone)
+	}
+
+	if e.GECOS.Office != "" {
+		lastAdded++
+		dump[lastAdded] = fmt.Sprintf("roomNumber: %s", e.GECOS.Office)
+	}
+
+	if e.GECOS.HomePhone != "" {
+		lastAdded++
+		dump[lastAdded] = fmt.Sprintf("homePhone: %s", e.GECOS.HomePhone)
+	}
+
+	if e.GECOS.FullName != "" {
+		lastAdded++
+		pn := e.GECOS.SplitName()
+		dump[lastAdded] = fmt.Sprintf("givenName: %s", pn.GivenName)
+		lastAdded++
+		dump[lastAdded] = fmt.Sprintf("sn: %s", pn.Surname)
+	}
+
+	lastAdded++
+	dump[lastAdded] = fmt.Sprintf("mail: %s@%s", e.User, dnsDomain)
+
+	if mailHost != "" {
+		lastAdded++
+		dump[lastAdded] = fmt.Sprintf("mailRoutingAddress: %s@%s", e.User, mailHost)
+		lastAdded++
+		dump[lastAdded] = fmt.Sprintf("mailHost: %s", mailHost)
+		lastAdded++
+		dump[lastAdded] = "objectClass: inetLocalMailRecipient"
+	}
+
+	hardCoded := []string{"person", "organizationalPerson", "inetOrgPerson", "posixAccount", "top"}
+
+	for _, value := range hardCoded {
+		lastAdded++
+		dump[lastAdded] = fmt.Sprintf("objectClass: %s", value)
+	}
+
+	return dump[:lastAdded]
 }
 
 // NewGECOS is the constructor for the GECOS struct
@@ -63,7 +133,7 @@ func NewGECOS(gecos string) GECOS {
 // Unless you're doing unit testing, this is the function you should be using
 // to start of
 func ReadDB(minUID, maxUID, minGID, maxGID int) ([]DBEntry, error) {
-  return ReadDBFromFile(minUID, maxUID, minGID, maxGID, "/etc/passwd")
+	return ReadDBFromFile(minUID, maxUID, minGID, maxGID, "/etc/passwd")
 }
 
 // ReadDBFromFile does the same thing as ReadDB, but reads from an arbitrary
