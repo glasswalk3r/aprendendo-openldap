@@ -1,4 +1,4 @@
-package db
+package shadow
 
 import (
 	"github.com/stretchr/testify/assert"
