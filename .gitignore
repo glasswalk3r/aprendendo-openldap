@@ -1,3 +1,4 @@
 .vagrant
 .python-version
 roles
+migration/migrate-passwd

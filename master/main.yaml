@@ -6,6 +6,12 @@
   vars:
     openssl_private_key: /etc/openldap/certs/priv.pem
     openssl_certificate: /etc/openldap/certs/cert.pem
+    # TODO: read the password from an environment variable
+    admin_pass: '123456'
+    users: '/root/users.ldif'
+    seed_data: '/root/seed_data.ldif'
+    bootstrap_data: '/root/db_bootstrap.ldif'
+    migrate_bin: '/usr/local/sbin/migrate-passwd'
   tasks:
     - name: Copy resolver configuration
       ansible.builtin.copy:
@@ -29,17 +35,20 @@
           - python36-cryptography  # for Ansible community.crypto
         state: present
         update_cache: 'yes'
+
     - name: Generate the hashed password for OpenLDAP manager
-      # TODO: read the password from an environment variable
-      ansible.builtin.command: 'slappasswd -s 123456 -n'
+      ansible.builtin.command: 'slappasswd -s {{ admin_pass }}'
       register: manager_password
     - name: Create a bootstrap LDIF file with OpenLDAP manager password
       ansible.builtin.template:
         src: templates/db_bootstrap.ldif
-        dest: /root/db_bootstrap.ldif
+        dest: '{{ bootstrap_data }}'
         owner: root
         group: root
         mode: '0400'
+    - name: Loading bootstrap data
+      ansible.builtin.command: 'ldapadd -Y EXTERNAL -H ldapi:/// -f {{ bootstrap_data }}'  # yamllint disable-line rule:line-length
+
     - name: 'Create private key (RSA, 4096 bits)'
       community.crypto.openssl_privatekey:
         path: '{{ openssl_private_key }}'
@@ -86,6 +95,7 @@
         name: slapd.service
         state: started
         enabled: 'yes'
+
     - name: 'Testing if required schemas are in place (idempotence)'
       ansible.builtin.command: ldapsearch -LLL -Y EXTERNAL -H ldapi:/// -b cn={1}cosine,cn=schema,cn=config cn  # yamllint disable-line rule:line-length
       ignore_errors: 'yes'
@@ -124,11 +134,41 @@
         - {"login": "nathalia", "fullname": "Nathalia Lopes", "password": "$5$VACmpTmOAHpIVLqZ$HNj.0nxssyymqCO1ALZ4I6bFjDEOKGNmmK8ByaA9q10"}  # yamllint disable-line rule:line-length
         - {"login": "pinguim", "fullname": "Aptenodytes Forsteri", "password": "$5$VACmpTmOAHpIVLqZ$HNj.0nxssyymqCO1ALZ4I6bFjDEOKGNmmK8ByaA9q10"}  # yamllint disable-line rule:line-length
 
-    - name: Setup migrate-passwd
-      ansible.builtin.copy:
-        src: '../migration/migrate-passwd'
-        dest: '/usr/local/sbin/migrate-passwd'
-        mode: '0500'
+    - name: 'Testing if seed data is already in place (idempotence)'
+      ansible.builtin.command: ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b dc=local,dc=br 'objectclass=organizationalUnit'  # yamllint disable-line rule:line-length
+      ignore_errors: 'yes'
+      register: seed_data_check
+
+    - block:
+        - name: Copy seed data LDIF
+          ansible.builtin.copy:
+            src: 'files/seed_data.ldif'
+            dest: '{{ seed_data }}'
+            mode: '0400'
+
+        - name: Load seed data into OpenLDAP
+          ansible.builtin.command: 'ldapadd -x -w {{ admin_pass }} -D cn=Manager,dc=local,dc=br -f {{ seed_data }}'  # yamllint disable-line rule:line-length
+
+      # exit code for "no such object" error
+      when: seed_data_check.rc == 32
+
+    - name: 'Testing if users are already in place (idempotence)'
+      ansible.builtin.command: ldapsearch -LLL -Q -Y EXTERNAL -H ldapi:/// -b uid=pinguim,ou=People,dc=local,dc=br  # yamllint disable-line rule:line-length
+      ignore_errors: 'yes'
+      register: users_check
+
+    - block:
+        - name: Setup migrate-passwd
+          ansible.builtin.copy:
+            src: '../migration/migrate-passwd'
+            dest: '{{ migrate_bin }}'
+            mode: '0550'
+        - name: Exports data from /etc/passwd and /etc/shadow
+          ansible.builtin.command: '{{ migrate_bin }} -base-dn dc=local,dc=br -dns-domain local.br -save-to {{ users }}'  # yamllint disable-line rule:line-length
+        - name: Load users into OpenLDAP
+          ansible.builtin.command: 'ldapadd -x -w {{ admin_pass }} -D cn=Manager,dc=local,dc=br -f {{ users }}'  # yamllint disable-line rule:line-length
+      # exit code for "no such object" error
+      when: seed_data_check.rc == 32
 
     - name: 'Testing if monitor access is already configured (idempotence)'
       ansible.builtin.command: ldapsearch -LLL -Y EXTERNAL -H ldapi:/// -b cn=config '(olcDatabase={1}monitor)' -Q  # yamllint disable-line rule:line-length
