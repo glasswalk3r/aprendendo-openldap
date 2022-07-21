@@ -41,6 +41,8 @@ Vagrant.configure('2') do |config|
     end
   end
 
+  # ENV['ANSIBLE_VERBOSITY'] = '3'
+
   config.vm.define 'master' do |m|
     m.vm.provider 'virtualbox' do |vb|
       vb.name = 'master'
@@ -52,6 +54,19 @@ Vagrant.configure('2') do |config|
       ansible.playbook = 'master/main.yaml'
       ansible.config_file = 'ansible.cfg'
     end
+  end
+
+  config.vm.define 'client' do |c|
+    c.vm.provider 'virtualbox' do |vb|
+      vb.name = 'client'
+    end
+    c.vm.hostname = 'client.local.br'
+    c.vm.network 'private_network', ip: '192.168.56.82'
+
+    # c.vm.provision :ansible do |ansible|
+    #   ansible.playbook = 'client/main.yaml'
+    #   ansible.config_file = 'ansible.cfg'
+    # end
   end
 end
 
