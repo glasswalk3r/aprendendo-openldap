@@ -1,3 +1,4 @@
+// Provides features to recover information from /etc/passwd file in Linux
 package passwd
 
 import (
@@ -62,7 +63,14 @@ func NewDBEntry(user []string) (DBEntry, error) {
 		return DBEntry{}, err
 	}
 
-	return DBEntry{user[0], int(uid), int(gid), gecos, user[5], user[6]}, nil
+	return DBEntry{
+		User:    user[0],
+		UID:     int(uid),
+		GID:     int(gid),
+		GECOS:   gecos,
+		HomeDir: user[5],
+		Shell:   user[6],
+	}, nil
 }
 
 func (e *DBEntry) ToLDIF(dnsDomain, mailHost, baseDN string) []string {
@@ -147,19 +155,29 @@ func NewGECOS(gecos string) GECOS {
 		expected[i] = current[i]
 	}
 
-	return GECOS{expected[0], expected[1], expected[2], expected[3]}
+	return GECOS{
+		FullName:  expected[0],
+		Office:    expected[1],
+		WorkPhone: expected[2],
+		HomePhone: expected[3],
+	}
 }
 
-// ReadDB reads all the users from the /etc/passwd and return those
-// UID and GID pass the provided filters.
-// Unless you're doing unit testing, this is the function you should be using
-// to start of
+/*
+ReadDB reads all the users from the /etc/passwd and return those which
+respective UID and GID pass the provided filters.
+The mingGID parameter is the minimum GID number that will be considered to
+retrieve, meaning that GID's lesser than that will be ignored.
+The maxGID is used for the same GID filter, but GID's greater than the specified
+value will be ignored.
+Unless you're doing unit testing, this is the function you should be using.
+*/
 func ReadDB(minUID, maxUID, minGID, maxGID int) ([]DBEntry, error) {
 	return ReadDBFromFile(minUID, maxUID, minGID, maxGID, "/etc/passwd")
 }
 
 // ReadDBFromFile does the same thing as ReadDB, but reads from an arbitrary
-// file location, which is good for unit testing
+// file location, which is good for unit testing.
 func ReadDBFromFile(minUID, maxUID, minGID, maxGID int, filePath string) ([]DBEntry, error) {
 	var users []DBEntry
 	readFile, err := os.Open(filePath)
