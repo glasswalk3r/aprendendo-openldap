@@ -3,6 +3,7 @@ package group
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -13,7 +14,7 @@ type DBEntry struct {
 	name     string
 	password string
 	gid      int
-	userList []string
+	members  []string
 }
 
 // NewDBEntry is the constructor for the DBEntry struct
@@ -24,11 +25,16 @@ func NewDBEntry(group []string) (DBEntry, error) {
 		return DBEntry{}, err
 	}
 
-	members := strings.Split(group[3], ",")
+	members := []string{}
+
+	if group[3] != "" {
+		members = strings.Split(group[3], ",")
+	}
+
 	return DBEntry{
-		name:     group[0],
-		gid:      int(gid), // password can be safely ignored
-		userList: members,
+		name:    group[0],
+		gid:     int(gid), // password can be safely ignored
+		members: members,
 	}, nil
 }
 
@@ -115,4 +121,23 @@ func readShadowDB(shadowFilePath string) (*map[string]string, error) {
 	}
 
 	return &groups, nil
+}
+
+func (e *DBEntry) ToLDIF(dnsDomain, mailHost, baseDN string) []string {
+	dump := make([]string, 5, 10)
+	dump[0] = fmt.Sprintf("dn: cn=%s,%s", e.name, baseDN)
+	dump[1] = "objectClass: posixGroup"
+	dump[2] = "objectClass: top"
+	dump[3] = fmt.Sprintf("cn: %s", e.name)
+	dump[4] = fmt.Sprintf("gidNumber: %d", e.gid)
+
+	for _, member := range e.members {
+		dump = append(dump, fmt.Sprintf("memberUid: %s", member))
+	}
+
+	if e.password != "" {
+		dump = append(dump, fmt.Sprintf("userPassword: {crypt}%s", e.password))
+	}
+
+	return dump
 }

@@ -44,3 +44,32 @@ func TestReadDBFromFile(t *testing.T) {
 
 	assert.NotEqual(t, "", groups[last].password, "Only the last group has a password")
 }
+
+func TestToLDIF(t *testing.T) {
+	groups, err := ReadDBFromFile(130, 2000, "group_mock.txt", gshadowFileMockPath)
+	assert.Nil(t, err, "No error should be returned")
+	dnsDomain := "foobar.org"
+	mailHost := "mail.foobar.org"
+	baseDN := "dc=foobar,dc=bar"
+
+	expectedClamav := []string{"dn: cn=clamav,dc=foobar,dc=bar", "objectClass: posixGroup", "objectClass: top", "cn: clamav", "gidNumber: 137"}
+	expectedMongoDB := []string{"dn: cn=mongodb,dc=foobar,dc=bar", "objectClass: posixGroup", "objectClass: top", "cn: mongodb", "gidNumber: 141", "memberUid: mongodb"}
+	expectedFoobar := []string{"dn: cn=foobar,dc=foobar,dc=bar", "objectClass: posixGroup", "objectClass: top", "cn: foobar", "gidNumber: 1001", "userPassword: {crypt}$6$6FC3G0weLu/y$cv7/3GzzLF9w8oIidnHLgWULAlM8EqTEOZQZIOhq9Sl7mPHxQcaDWqpr9imhvoAiM.gIl70drtn7YxGH1WdvD."}
+
+	for _, group := range groups {
+		if group.name == "clamav" {
+			assert.EqualValues(t, expectedClamav, group.ToLDIF(dnsDomain, mailHost, baseDN))
+			continue
+		}
+
+		if group.name == "mongodb" {
+			assert.EqualValues(t, expectedMongoDB, group.ToLDIF(dnsDomain, mailHost, baseDN))
+			continue
+		}
+
+		if group.name == "foobar" {
+			assert.EqualValues(t, expectedFoobar, group.ToLDIF(dnsDomain, mailHost, baseDN))
+			continue
+		}
+	}
+}
