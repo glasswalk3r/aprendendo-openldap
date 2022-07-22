@@ -13,12 +13,17 @@ func TestReadDBFromFile(t *testing.T) {
 	assert.Nilf(t, err, "Unexpected error: '%s'", err)
 	assert.Equalf(t, 1, len(users), "Only one user is expected, got: %v", users)
 	expected := DBEntry{
-		"alceu",
-		1000,
-		1000,
-		GECOS{"Alceu Rodrigues de Freitas Junior", "571", "+551155422748", "+551155422748"},
-		"/home/alceu",
-		"/bin/bash",
+		User: "alceu",
+		UID: 1000,
+		GID: 1000,
+		GECOS: GECOS{
+			FullName: "Alceu Rodrigues de Freitas Junior",
+			Office: "571",
+			WorkPhone: "+551155422748",
+			HomePhone: "+551155422748",
+		},
+		HomeDir: "/home/alceu",
+		Shell: "/bin/bash",
 	}
 	assert.EqualValues(t, expected, users[0])
 }
