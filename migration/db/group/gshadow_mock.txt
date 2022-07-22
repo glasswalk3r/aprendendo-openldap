@@ -1,0 +1,9 @@
+clamav:!::
+etcd:!::
+mysql:!::
+sddm:!::
+sgx:!::
+_ssh:!::
+mongodb:!::mongodb
+openldap:!::
+foobar:$6$6FC3G0weLu/y$cv7/3GzzLF9w8oIidnHLgWULAlM8EqTEOZQZIOhq9Sl7mPHxQcaDWqpr9imhvoAiM.gIl70drtn7YxGH1WdvD.::
