@@ -15,7 +15,7 @@
   tasks:
     - name: Copy resolver configuration
       ansible.builtin.copy:
-        src: files/resolv.conf
+        src: ../resolv.conf
         dest: /etc/resolv.conf
         owner: root
         group: root
