@@ -83,32 +83,34 @@ func main() {
 			os.Exit(1)
 		}
 
-		groups, err := group.ReadDB(gidBelow, gidAbove)
-
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", err)
-			os.Exit(1)
-		}
-
 		if writeResultTo != "" {
 			fileWriter.WriteString(strings.Join(shadowEntry.ToLDIF(), "\n"))
 			// put a required new line between two different entries
-			fileWriter.WriteString("\n\n")
-
-			for _, g := range groups {
-				fileWriter.WriteString(strings.Join(g.ToLDIF(dnsDomain, mailHost, baseDN), "\n"))
-			}
-
 			fileWriter.WriteString("\n\n")
 			fileWriter.Flush()
 		} else {
 			fmt.Println(strings.Join(shadowEntry.ToLDIF(), "\n"))
 			fmt.Println()
+		}
+	}
 
-			for _, g := range groups {
-				fmt.Println(strings.Join(g.ToLDIF(dnsDomain, mailHost, baseDN), "\n"))
-			}
+	groups, err := group.ReadDB(gidBelow, gidAbove)
 
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
+	}
+
+	if writeResultTo != "" {
+		for _, g := range groups {
+			fileWriter.WriteString(strings.Join(g.ToLDIF(dnsDomain, mailHost, baseDN), "\n"))
+			fileWriter.WriteString("\n\n")
+		}
+
+		fileWriter.Flush()
+	} else {
+		for _, g := range groups {
+			fmt.Println(strings.Join(g.ToLDIF(dnsDomain, mailHost, baseDN), "\n"))
 			fmt.Println()
 		}
 	}
