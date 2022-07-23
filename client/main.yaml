@@ -1,0 +1,52 @@
+---
+- name: Configures client server
+  hosts: all
+  become: true
+  gather_facts: 'no'
+  tasks:
+    - name: Install packages
+      yum:
+        name:
+          - openldap-clients
+          - nss-pam-ldapd
+        state: present
+        update_cache: 'yes'
+    - name: Copy resolver configuration
+      ansible.builtin.copy:
+        src: ../resolv.conf
+        dest: /etc/resolv.conf
+        owner: root
+        group: root
+        mode: '0644'
+    - name: Setup LDAP client configuration
+      ansible.builtin.template:
+        src: templates/ldap.conf
+        dest: /etc/openldap/ldap.conf
+        owner: root
+        group: root
+        mode: '0644'
+    - name: Copy Name Service Switch configuration file
+      ansible.builtin.copy:
+        src: files/nsswitch.conf
+        dest: /etc/nsswitch.conf
+        owner: root
+        group: root
+        mode: '0644'
+    - name: Copy PAM configuration file
+      ansible.builtin.copy:
+        src: files/system-auth-ac
+        # /etc/pam.d/system-auth is a link to it
+        dest: /etc/pam.d/system-auth-ac
+        owner: root
+        group: root
+        mode: '0644'
+    - name: Disable NetworkManager to not change resolver configuration
+      ansible.builtin.systemd:
+        name: NetworkManager.service
+        state: stopped
+        enabled: 'no'
+    - name: Reloading the nslcd daemon
+      ansible.builtin.systemd:
+        name: nslcd.service
+        state: restarted
+        enabled: 'yes'

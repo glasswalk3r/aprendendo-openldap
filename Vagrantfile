@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+base_dn = 'dc=local,dc=br'
+ldap_server = 'master.local.br'
+
 Vagrant.configure('2') do |config|
   # The most common configuration options are documented and commented below.
   # For a complete reference, please see the online documentation at
@@ -47,7 +50,7 @@ Vagrant.configure('2') do |config|
     m.vm.provider 'virtualbox' do |vb|
       vb.name = 'master'
     end
-    m.vm.hostname = 'master.local.br'
+    m.vm.hostname = ldap_server
     m.vm.network 'private_network', ip: '192.168.56.80'
 
     m.vm.provision :ansible do |ansible|
@@ -63,10 +66,16 @@ Vagrant.configure('2') do |config|
     c.vm.hostname = 'client.local.br'
     c.vm.network 'private_network', ip: '192.168.56.82'
 
-    # c.vm.provision :ansible do |ansible|
-    #   ansible.playbook = 'client/main.yaml'
-    #   ansible.config_file = 'ansible.cfg'
-    # end
+    c.vm.provision :ansible do |ansible|
+      ansible.playbook = 'client/main.yaml'
+      ansible.config_file = 'ansible.cfg'
+      ansible.host_vars = {
+        'client' => {
+          'base_dn' => base_dn,
+          'ldap_server' => ldap_server
+        }
+      }
+    end
   end
 end
 
