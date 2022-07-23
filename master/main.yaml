@@ -36,19 +36,6 @@
         state: present
         update_cache: 'yes'
 
-    - name: Generate the hashed password for OpenLDAP manager
-      ansible.builtin.command: 'slappasswd -s {{ admin_pass }}'
-      register: manager_password
-    - name: Create a bootstrap LDIF file with OpenLDAP manager password
-      ansible.builtin.template:
-        src: templates/db_bootstrap.ldif
-        dest: '{{ bootstrap_data }}'
-        owner: root
-        group: root
-        mode: '0400'
-    - name: Loading bootstrap data
-      ansible.builtin.command: 'ldapadd -Y EXTERNAL -H ldapi:/// -f {{ bootstrap_data }}'  # yamllint disable-line rule:line-length
-
     - name: 'Create private key (RSA, 4096 bits)'
       community.crypto.openssl_privatekey:
         path: '{{ openssl_private_key }}'
@@ -109,6 +96,19 @@
         - inetorgperson.ldif
         - misc.ldif
 
+    - name: Generate the hashed password for OpenLDAP manager
+      ansible.builtin.command: 'slappasswd -s {{ admin_pass }}'
+      register: manager_password
+    - name: Create a bootstrap LDIF file with OpenLDAP manager password
+      ansible.builtin.template:
+        src: templates/db_bootstrap.ldif
+        dest: '{{ bootstrap_data }}'
+        owner: root
+        group: root
+        mode: '0400'
+    - name: Loading bootstrap data
+      ansible.builtin.command: 'ldapadd -Y EXTERNAL -H ldapi:/// -f {{ bootstrap_data }}'  # yamllint disable-line rule:line-length
+
     - name: Manage local user group
       ansible.builtin.group:
         name: it
@@ -168,7 +168,7 @@
         - name: Load users into OpenLDAP
           ansible.builtin.command: 'ldapadd -x -w {{ admin_pass }} -D cn=Manager,dc=local,dc=br -f {{ users }}'  # yamllint disable-line rule:line-length
       # exit code for "no such object" error
-      when: seed_data_check.rc == 32
+      when: users_check.rc == 32
 
     - name: 'Testing if monitor access is already configured (idempotence)'
       ansible.builtin.command: ldapsearch -LLL -Y EXTERNAL -H ldapi:/// -b cn=config '(olcDatabase={1}monitor)' -Q  # yamllint disable-line rule:line-length
