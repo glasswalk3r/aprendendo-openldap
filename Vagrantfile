@@ -4,19 +4,12 @@ base_dn = 'dc=local,dc=br'
 ldap_server = 'master.local.br'
 
 Vagrant.configure('2') do |config|
-  # The most common configuration options are documented and commented below.
-  # For a complete reference, please see the online documentation at
-  # https://docs.vagrantup.com.
-
-  # Every Vagrant development environment requires a box. You can search for
-  # boxes at https://vagrantcloud.com/search.
-  # config.vm.box = "roboxes/centos7"
-  config.vm.box = 'ARFREITAS/centos7'
+  config.vm.box = 'roboxes/centos7'
 
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs
   # `vagrant box outdated`. This is not recommended.
-  config.vm.box_check_update = false
+  config.vm.box_check_update = true
 
   config.vm.provider 'virtualbox' do |vb|
     vb.memory = 1024
@@ -44,6 +37,7 @@ Vagrant.configure('2') do |config|
     end
   end
 
+  # enable debugging Ansible configuring tasks
   # ENV['ANSIBLE_VERBOSITY'] = '3'
 
   config.vm.define 'master' do |m|
