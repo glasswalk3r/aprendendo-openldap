@@ -13,8 +13,15 @@
         update_cache: 'yes'
     - name: Copy resolver configuration
       ansible.builtin.copy:
-        src: ../resolv.conf
+        src: ../shared/resolv.conf
         dest: /etc/resolv.conf
+        owner: root
+        group: root
+        mode: '0644'
+    - name: Change Vagrant default NAT network (disable resolver configuration)
+      ansible.builtin.copy:
+        src: ../shared/ifcfg-eth0
+        dest: /etc/sysconfig/network-scripts/ifcfg-eth0
         owner: root
         group: root
         mode: '0644'
