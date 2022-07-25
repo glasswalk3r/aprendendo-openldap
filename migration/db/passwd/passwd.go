@@ -9,9 +9,11 @@ import (
 	"strings"
 )
 
-// DBEntry is the representation of a user in the /etc/passwd file.
-// The password field is ignored since modern UNIX-like OS uses /etc/shadow for
-// storing a hashing of the original password
+/*
+DBEntry is the representation of a user in the /etc/passwd file.
+The password field is ignored since modern UNIX-like OS uses /etc/shadow for
+storing a hashing of the original password
+*/
 type DBEntry struct {
 	User    string
 	UID     int
@@ -21,13 +23,16 @@ type DBEntry struct {
 	Shell   string
 }
 
-// GECOS is an arbitrary list of string separated by commas.
-// See https://www.redhat.com/sysadmin/linux-gecos-demystified for more details.
+/*
+GECOS is an arbitrary list of string separated by commas.
+See https://www.redhat.com/sysadmin/linux-gecos-demystified for more details.
+*/
 type GECOS struct {
 	FullName  string
 	Office    string
 	WorkPhone string
 	HomePhone string
+	Raw       string
 }
 
 type PersonName struct {
@@ -73,55 +78,61 @@ func NewDBEntry(user []string) (DBEntry, error) {
 	}, nil
 }
 
+/*
+ToLDIF exports a DBEntry struct in a LDIF format.
+Expect as parameters:
+- dnsDomain: specify the DNS domain to use with the mail attribute
+- mailHost: define inetLocalMailRecipient class attributes
+- baseDN: specify the base DN for the entry DN
+*/
 func (e *DBEntry) ToLDIF(dnsDomain, mailHost, baseDN string) []string {
-	var dump [19]string
+	// TODO: try refactoring by using append() instead
+	var dump [20]string
 	dump[0] = fmt.Sprintf("dn: uid=%s,ou=People,%s", e.User, baseDN)
 	dump[1] = fmt.Sprintf("uid: %s", e.User)
 	lastAdded := 1
+	objectClasses := []string{"posixAccount", "top", "account"}
 
-	if e.GECOS.WorkPhone != "" {
+	if e.GECOS.Raw != "" {
 		lastAdded++
-		dump[lastAdded] = fmt.Sprintf("telephoneNumber: %s", e.GECOS.WorkPhone)
-	}
+		dump[lastAdded] = fmt.Sprintf("gecos: %s", e.GECOS.Raw)
 
-	if e.GECOS.Office != "" {
-		lastAdded++
-		dump[lastAdded] = fmt.Sprintf("roomNumber: %s", e.GECOS.Office)
-	}
-
-	if e.GECOS.HomePhone != "" {
-		lastAdded++
-		dump[lastAdded] = fmt.Sprintf("homePhone: %s", e.GECOS.HomePhone)
-	}
-
-	objectClasses := []string{"posixAccount", "top"}
-
-	if e.GECOS.FullName != "" {
-		lastAdded++
-		pn := e.GECOS.SplitName()
-		dump[lastAdded] = fmt.Sprintf("givenName: %s", pn.GivenName)
-		lastAdded++
-		dump[lastAdded] = fmt.Sprintf("sn: %s", pn.Surname)
-		lastAdded++
-		dump[lastAdded] = fmt.Sprintf("cn: %s", e.GECOS.FullName)
-
-		lastAdded++
-		dump[lastAdded] = fmt.Sprintf("mail: %s@%s", e.User, dnsDomain)
-
-		if mailHost != "" {
+		if e.GECOS.WorkPhone != "" {
 			lastAdded++
-			dump[lastAdded] = fmt.Sprintf("mailRoutingAddress: %s@%s", e.User, mailHost)
-			lastAdded++
-			dump[lastAdded] = fmt.Sprintf("mailHost: %s", mailHost)
-			lastAdded++
-			dump[lastAdded] = "objectClass: inetLocalMailRecipient"
+			dump[lastAdded] = fmt.Sprintf("telephoneNumber: %s", e.GECOS.WorkPhone)
 		}
 
-		objectClasses = append(objectClasses, "person")
-		objectClasses = append(objectClasses, "organizationalPerson")
-		objectClasses = append(objectClasses, "inetOrgPerson")
+		if e.GECOS.Office != "" {
+			lastAdded++
+			dump[lastAdded] = fmt.Sprintf("roomNumber: %s", e.GECOS.Office)
+		}
+
+		if e.GECOS.HomePhone != "" {
+			lastAdded++
+			dump[lastAdded] = fmt.Sprintf("homePhone: %s", e.GECOS.HomePhone)
+		}
+
+		if e.GECOS.FullName != "" {
+			lastAdded++
+			pn := e.GECOS.SplitName()
+			dump[lastAdded] = fmt.Sprintf("givenName: %s", pn.GivenName)
+			lastAdded++
+			dump[lastAdded] = fmt.Sprintf("sn: %s", pn.Surname)
+			lastAdded++
+			dump[lastAdded] = fmt.Sprintf("cn: %s", e.GECOS.FullName)
+			lastAdded++
+			dump[lastAdded] = fmt.Sprintf("mail: %s@%s", e.User, dnsDomain)
+
+			if mailHost != "" {
+				lastAdded++
+				dump[lastAdded] = fmt.Sprintf("mailRoutingAddress: %s@%s", e.User, mailHost)
+				lastAdded++
+				dump[lastAdded] = fmt.Sprintf("mailHost: %s", mailHost)
+				lastAdded++
+				dump[lastAdded] = "objectClass: inetLocalMailRecipient"
+			}
+		}
 	} else {
-		objectClasses = append(objectClasses, "account")
 		lastAdded++
 		dump[lastAdded] = fmt.Sprintf("cn: %s", e.User)
 	}
@@ -133,20 +144,21 @@ func (e *DBEntry) ToLDIF(dnsDomain, mailHost, baseDN string) []string {
 
 	lastAdded++
 	dump[lastAdded] = fmt.Sprintf("loginShell: %s", e.Shell)
-
 	lastAdded++
 	dump[lastAdded] = fmt.Sprintf("uidNumber: %d", e.UID)
-
 	lastAdded++
 	dump[lastAdded] = fmt.Sprintf("gidNumber: %d", e.GID)
-
 	lastAdded++
 	dump[lastAdded] = fmt.Sprintf("homeDirectory: %s", e.HomeDir)
-
 	return dump[:lastAdded+1]
 }
 
-// NewGECOS is the constructor for the GECOS struct
+/*
+NewGECOS is the constructor for the GECOS struct.
+Only the first four fields considered when parsing, but the original field is
+also kept (Raw).
+Expects the GECOS field as available in /etc/passwd.
+*/
 func NewGECOS(gecos string) GECOS {
 	current := strings.Split(gecos, ",")
 	expected := [4]string{}
@@ -160,6 +172,7 @@ func NewGECOS(gecos string) GECOS {
 		Office:    expected[1],
 		WorkPhone: expected[2],
 		HomePhone: expected[3],
+		Raw:       gecos,
 	}
 }
 
@@ -176,8 +189,10 @@ func ReadDB(minUID, maxUID, minGID, maxGID int) ([]DBEntry, error) {
 	return ReadDBFromFile(minUID, maxUID, minGID, maxGID, "/etc/passwd")
 }
 
-// ReadDBFromFile does the same thing as ReadDB, but reads from an arbitrary
-// file location, which is good for unit testing.
+/*
+ReadDBFromFile does the same thing as ReadDB, but reads from an arbitrary
+file location, which is good for unit testing.
+*/
 func ReadDBFromFile(minUID, maxUID, minGID, maxGID int, filePath string) ([]DBEntry, error) {
 	var users []DBEntry
 	readFile, err := os.Open(filePath)

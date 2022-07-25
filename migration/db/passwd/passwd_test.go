@@ -21,6 +21,7 @@ func TestReadDBFromFile(t *testing.T) {
 			Office:    "571",
 			WorkPhone: "+551155422748",
 			HomePhone: "+551155422748",
+			Raw:       "Alceu Rodrigues de Freitas Junior,571,+551155422748,+551155422748",
 		},
 		HomeDir: "/home/alceu",
 		Shell:   "/bin/bash",
