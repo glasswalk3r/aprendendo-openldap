@@ -15,9 +15,12 @@ Vagrant.configure('2') do |config|
     vb.memory = 1024
     vb.name = 'ldap-base'
     vb.linked_clone = true
+    # to avoid warnings from Virtualbox
+    vb.customize ['modifyvm', :id, '--vrde', 'off']
+    vb.customize ['modifyvm', :id, '--graphicscontroller', 'vmsvga']
   end
 
-  config.vm.provision 'shell', inline: 'yum makecache fast && yum upgrade -y && yum install python3 -y'
+  config.vm.provision 'shell', inline: 'yum makecache fast && yum upgrade -y && yum install python3 tree mailx -y'
 
   config.vm.provision :ansible do |ansible|
     ansible.playbook = 'ntp.yaml'
@@ -46,6 +49,7 @@ Vagrant.configure('2') do |config|
     end
     m.vm.hostname = ldap_server
     m.vm.network 'private_network', ip: '192.168.56.80'
+    m.vm.network 'forwarded_port', guest: 389, host: 3389, host_ip: '127.0.0.1', id: 'ldap'
 
     m.vm.provision :ansible do |ansible|
       ansible.playbook = 'master/main.yaml'
