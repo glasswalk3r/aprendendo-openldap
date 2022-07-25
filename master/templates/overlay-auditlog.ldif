@@ -1,0 +1,6 @@
+dn: olcOverlay=auditlog,olcDatabase={2}hdb,cn=config
+changetype: add
+objectClass: olcOverlayConfig
+objectClass: olcAuditLogConfig
+olcOverlay: auditlog
+olcauditlogfile: {{ ldap_audit_log }}

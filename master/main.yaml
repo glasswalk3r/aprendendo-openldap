@@ -12,6 +12,9 @@
     seed_data: '/root/seed_data.ldif'
     bootstrap_data: '/root/db_bootstrap.ldif'
     migrate_bin: '/usr/local/sbin/migrate-passwd'
+    log_dir: /var/log/openldap
+    ldap_audit_log: '{{ log_dir }}/audit.log'
+    ldap_log: /var/log/openldap.log
   tasks:
     - name: Copy resolver configuration
       ansible.builtin.copy:
@@ -139,7 +142,7 @@
         password: '{{ item["password"] }}'
         password_expire_max: 365
         password_expire_min: 15
-      loop:
+      loop:  # TODO: DRY for password
         - {"login": "marcos", "fullname": "Marcos Pitanga", "password": "$5$VACmpTmOAHpIVLqZ$HNj.0nxssyymqCO1ALZ4I6bFjDEOKGNmmK8ByaA9q10"}  # yamllint disable-line rule:line-length
         - {"login": "alves", "fullname": "Alves Silva", "password": "$5$VACmpTmOAHpIVLqZ$HNj.0nxssyymqCO1ALZ4I6bFjDEOKGNmmK8ByaA9q10"}  # yamllint disable-line rule:line-length
         - {"login": "arthur", "fullname": "Arthur Moura", "password": "$5$VACmpTmOAHpIVLqZ$HNj.0nxssyymqCO1ALZ4I6bFjDEOKGNmmK8ByaA9q10"}  # yamllint disable-line rule:line-length
@@ -160,11 +163,10 @@
 
         - name: Load seed data into OpenLDAP
           ansible.builtin.command: 'ldapadd -x -w {{ admin_pass }} -D cn=Manager,dc=local,dc=br -f {{ seed_data }}'  # yamllint disable-line rule:line-length
-
-      # exit code for "no such object" error
-      when: seed_data_check.rc == 32
+      when: seed_data_check.rc == 32  # exit code for "no such object" error
 
     - name: 'Testing if users are already in place (idempotence)'
+      # TODO: DRY with parameters
       ansible.builtin.command: ldapsearch -LLL -Q -Y EXTERNAL -H ldapi:/// -b uid=pinguim,ou=People,dc=local,dc=br  # yamllint disable-line rule:line-length
       ignore_errors: 'yes'
       register: users_check
@@ -199,12 +201,85 @@
       # exit code for "no such object" error
       when: monitor_access_check.rc == 32
 
-    - name: Configuring rsyslog to accept OpenLDAP logging
+    - name: Copy logging configuration for OpenLDAP
       ansible.builtin.copy:
-        src: files/rsyslog.conf
+        src: files/log_level.ldif
+        dest: /root/log_level.ldif
+        owner: root
+        group: root
+        mode: '0640'
+    - name: Configure OpenLDAP logging level
+      ansible.builtin.command: ldapmodify -Y EXTERNAL -H ldapi:/// -f /root/log_level.ldif  # yamllint disable-line rule:line-length
+    - name: Add local4 support in rsyslog
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regex: '\*.info;mail\.none;authpriv\.none;cron\.none(;local4\.none)?\s+/var/log/messages'  # yamllint disable-line rule:line-length
+        line: '*.info;mail.none;authpriv.none;cron.none *.info;mail.none;authpriv.none;cron.none;local4.none'  # yamllint disable-line rule:line-length
+        state: present
+        owner: root
+        group: root
+        mode: '0644'
+    - name: Configure rsyslog to accept OpenLDAP logging
+      ansible.builtin.template:
+        src: templates/rsyslog.conf
         dest: /etc/rsyslog.d/openldap.conf
+        owner: root
+        group: root
+        mode: '0644'
     - name: Reloading the rsyslog daemon
       ansible.builtin.systemd:
         name: rsyslog.service
         state: restarted
         enabled: 'yes'
+    - name: Configure logrotate for OpenLDAP logs
+      ansible.builtin.template:
+        src: templates/openldap_logrotate
+        dest: /etc/logrotate.d/openldap
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Copy audit configuration for LDAP operations
+      ansible.builtin.copy:
+        src: files/auditlog.ldif
+        dest: /root/auditlog.ldif
+        owner: root
+        group: root
+        mode: '0640'
+    - name: Add audit configuration to OpenLDAP database
+      ansible.builtin.command: ldapadd -Y EXTERNAL -H ldapi:/// -f /root/auditlog.ldif  # yamllint disable-line rule:line-length
+      register: command_result
+      failed_when:
+        - command_result.rc != 0
+        - command_result.rc != 80  # already loaded
+
+    - name: Check if audit log is already configured
+      ansible.builtin.command: ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b 'olcOverlay={0}auditlog,olcDatabase={2}hdb,cn=config'  # yamllint disable-line rule:line-length
+      ignore_errors: 'yes'
+      register: audit_logging_check
+    - block:
+        - name: Create audit log file
+          ansible.builtin.file:
+            path: '{{ log_dir }}'
+            owner: ldap
+            group: ldap
+            mode: '770'
+            state: directory
+        - name: Copy audit logging configuration
+          ansible.builtin.template:
+            src: templates/overlay-auditlog.ldif
+            dest: /root/overlay-auditlog.ldif
+            owner: root
+            group: root
+            mode: '0640'
+        - name: Add audit logging configuration to OpenLDAP database
+          ansible.builtin.command: ldapmodify -Y EXTERNAL -H ldapi:/// -f /root/overlay-auditlog.ldif  # yamllint disable-line rule:line-length
+        - name: Configure logrotate for OpenLDAP audit logs
+          ansible.builtin.template:
+            src: templates/openldap_audit_logrotate
+            dest: /etc/logrotate.d/openldap_audit
+            owner: root
+            group: root
+            mode: '0644'
+      # exit code for "no such object" error
+      when: audit_logging_check.rc == 32

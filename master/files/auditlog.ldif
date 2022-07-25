@@ -1,0 +1,5 @@
+dn: cn=module,cn=config
+objectclass: olcModuleList
+cn: Module
+olcModuleLoad: auditlog.la
+olcModulePath: /usr/lib64/openldap
