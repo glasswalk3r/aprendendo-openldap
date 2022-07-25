@@ -35,3 +35,21 @@ func TestReadDBFromFileInvalidFilePath(t *testing.T) {
 	assert.Contains(t, err.Error(), "no such file")
 	assert.Equalf(t, 0, len(users), "Unexpected content: %v", users)
 }
+
+func TestToAccountLDIF(t *testing.T) {
+	users, err := ReadDBFromFile(1000, 2000, 1000, 2000, mockDBFilename)
+	assert.Nilf(t, err, "Unexpected error: '%s'", err)
+	expected := []string{
+		"dn: uid=alceu,ou=People,dc=foobar,dc=org",
+		"uid: alceu", "loginShell: /bin/bash",
+		"uidNumber: 1000",
+		"gidNumber: 1000",
+		"homeDirectory: /home/alceu",
+		"cn: Alceu Rodrigues de Freitas Junior",
+		"objectClass: posixAccount",
+		"objectClass: top",
+		"objectClass: account",
+		"gecos: Alceu Rodrigues de Freitas Junior,571,+551155422748,+551155422748",
+	}
+	assert.EqualValues(t, expected, users[0].ToAccountLDIF("dc=foobar,dc=org"))
+}

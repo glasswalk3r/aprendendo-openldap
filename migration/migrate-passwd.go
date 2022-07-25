@@ -67,7 +67,7 @@ func main() {
 	}
 
 	for _, entry := range passwdDB {
-		dump := entry.ToLDIF(dnsDomain, mailHost, baseDN)
+		dump := entry.ToAccountLDIF(baseDN)
 
 		if writeResultTo != "" {
 			fileWriter.WriteString(strings.Join(dump, "\n"))

@@ -79,24 +79,58 @@ func NewDBEntry(user []string) (DBEntry, error) {
 }
 
 /*
-ToLDIF exports a DBEntry struct in a LDIF format.
+ToAccountLDIF exports a DBEntry struct in a LDIF format with attributes for the
+account and posixAccount classes.
+*/
+func (e *DBEntry) ToAccountLDIF(baseDN string) []string {
+	var cn string
+
+	if e.GECOS.FullName != "" {
+		cn = fmt.Sprintf("cn: %s", e.GECOS.FullName)
+	} else {
+		cn = fmt.Sprintf("cn: %s", e.User)
+	}
+
+	dump := []string{
+		fmt.Sprintf("dn: uid=%s,ou=People,%s", e.User, baseDN),
+		fmt.Sprintf("uid: %s", e.User),
+		fmt.Sprintf("loginShell: %s", e.Shell),
+		fmt.Sprintf("uidNumber: %d", e.UID),
+		fmt.Sprintf("gidNumber: %d", e.GID),
+		fmt.Sprintf("homeDirectory: %s", e.HomeDir),
+		cn,
+	}
+
+	objectClasses := []string{"posixAccount", "top", "account"}
+
+	for _, value := range objectClasses {
+		dump = append(dump, fmt.Sprintf("objectClass: %s", value))
+	}
+
+	if e.GECOS.Raw != "" {
+		dump = append(dump, fmt.Sprintf("gecos: %s", e.GECOS.Raw))
+	}
+
+	return dump
+}
+
+/*
+ToPersonLDIF exports a DBEntry struct in a LDIF format with attributes for
+person, organizationalPerson and inetOrgPerson classes.
 Expect as parameters:
 - dnsDomain: specify the DNS domain to use with the mail attribute
 - mailHost: define inetLocalMailRecipient class attributes
 - baseDN: specify the base DN for the entry DN
 */
-func (e *DBEntry) ToLDIF(dnsDomain, mailHost, baseDN string) []string {
+func (e *DBEntry) ToPersonLDIF(dnsDomain, mailHost, baseDN string) []string {
 	// TODO: try refactoring by using append() instead
 	var dump [20]string
 	dump[0] = fmt.Sprintf("dn: uid=%s,ou=People,%s", e.User, baseDN)
 	dump[1] = fmt.Sprintf("uid: %s", e.User)
 	lastAdded := 1
-	objectClasses := []string{"posixAccount", "top", "account"}
+	objectClasses := []string{"posixAccount", "top", "person", "organizationalPerson", "inetOrgPerson"}
 
 	if e.GECOS.Raw != "" {
-		lastAdded++
-		dump[lastAdded] = fmt.Sprintf("gecos: %s", e.GECOS.Raw)
-
 		if e.GECOS.WorkPhone != "" {
 			lastAdded++
 			dump[lastAdded] = fmt.Sprintf("telephoneNumber: %s", e.GECOS.WorkPhone)
