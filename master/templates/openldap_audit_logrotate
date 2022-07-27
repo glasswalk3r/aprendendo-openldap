@@ -3,6 +3,7 @@
     notifempty
     compress
     daily
+    su ldap ldap
     rotate 10
     size=10M
     sharedscripts
