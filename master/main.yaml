@@ -165,24 +165,24 @@
           ansible.builtin.command: 'ldapadd -x -w {{ admin_pass }} -D cn=Manager,dc=local,dc=br -f {{ seed_data }}'  # yamllint disable-line rule:line-length
       when: seed_data_check.rc == 32  # exit code for "no such object" error
 
-    - name: 'Testing if users are already in place (idempotence)'
-      # TODO: DRY with parameters
-      ansible.builtin.command: ldapsearch -LLL -Q -Y EXTERNAL -H ldapi:/// -b uid=pinguim,ou=People,dc=local,dc=br  # yamllint disable-line rule:line-length
-      ignore_errors: 'yes'
-      register: users_check
-
-    - block:
-        - name: Setup migrate-passwd
-          ansible.builtin.copy:
-            src: '../migration/migrate-passwd'
-            dest: '{{ migrate_bin }}'
-            mode: '0550'
-        - name: Exports data from /etc/passwd and /etc/shadow
-          ansible.builtin.command: '{{ migrate_bin }} -base-dn dc=local,dc=br -dns-domain local.br -save-to {{ users }}'  # yamllint disable-line rule:line-length
-        - name: Load users into OpenLDAP
-          ansible.builtin.command: 'ldapadd -x -w {{ admin_pass }} -D cn=Manager,dc=local,dc=br -f {{ users }}'  # yamllint disable-line rule:line-length
-      # exit code for "no such object" error
-      when: users_check.rc == 32
+    # - name: 'Testing if users are already in place (idempotence)'
+    #   # TODO: DRY with parameters
+    #   ansible.builtin.command: ldapsearch -LLL -Q -Y EXTERNAL -H ldapi:/// -b uid=pinguim,ou=People,dc=local,dc=br  # yamllint disable-line rule:line-length
+    #   ignore_errors: 'yes'
+    #   register: users_check
+    #
+    # - block:
+    #     - name: Setup migrate-passwd
+    #       ansible.builtin.copy:
+    #         src: '../migration/migrate-passwd'
+    #         dest: '{{ migrate_bin }}'
+    #         mode: '0550'
+    #     - name: Exports data from /etc/passwd and /etc/shadow
+    #       ansible.builtin.command: '{{ migrate_bin }} -base-dn dc=local,dc=br -dns-domain local.br -save-to {{ users }}'  # yamllint disable-line rule:line-length
+    #     - name: Load users into OpenLDAP
+    #       ansible.builtin.command: 'ldapadd -x -w {{ admin_pass }} -D cn=Manager,dc=local,dc=br -f {{ users }}'  # yamllint disable-line rule:line-length
+    #   # exit code for "no such object" error
+    #   when: users_check.rc == 32
 
     - name: 'Testing if monitor access is already configured (idempotence)'
       ansible.builtin.command: ldapsearch -LLL -Y EXTERNAL -H ldapi:/// -b cn=config '(olcDatabase={1}monitor)' -Q  # yamllint disable-line rule:line-length
@@ -258,9 +258,10 @@
       ignore_errors: 'yes'
       register: audit_logging_check
     - block:
-        - name: Create audit log file
+        - name: Create audit log directory
           ansible.builtin.file:
             path: '{{ log_dir }}'
+            # TODO: create variable for DRY, also sharing with template
             owner: ldap
             group: ldap
             mode: '770'
@@ -283,3 +284,20 @@
             mode: '0644'
       # exit code for "no such object" error
       when: audit_logging_check.rc == 32
+
+    - name: Check if memberOf and refInt are already configured
+      ansible.builtin.command: ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b 'olcOverlay={0}memberof,olcDatabase={2}hdb,cn=config'  # yamllint disable-line rule:line-length
+      ignore_errors: 'yes'
+      register: memberof_check
+    - block:
+        - name: Copy memberOf and refInt overlays configuration file
+          ansible.builtin.copy:
+            src: 'files/memberof_refint.ldif'
+            dest: '/root/memberof_refint.ldif'
+            owner: root
+            group: root
+            mode: '0440'
+        - name: Add the configuration to OpenLDAP
+          ansible.builtin.command: ldapadd -Y EXTERNAL -H ldapi:/// -f /root/memberof_refint.ldif  # yamllint disable-line rule:line-length
+      # exit code for "no such object" error
+      when: memberof_check.rc == 32
