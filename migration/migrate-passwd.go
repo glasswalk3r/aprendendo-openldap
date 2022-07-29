@@ -26,15 +26,17 @@ func main() {
 	var gidBelow int
 	var gidAbove int
 	var writeResultTo string
+	var useExtended bool
 
 	flag.StringVar(&dnsDomain, "dns-domain", defaultDNSDomain, fmt.Sprintf("Specify the DNS domain to use, default to %s", defaultDNSDomain))
 	flag.StringVar(&baseDN, "base-dn", defaultBaseDN, fmt.Sprintf("Specify the base DN, default to %s", defaultBaseDN))
-	flag.StringVar(&mailHost, "mail-host", "", "Optional, define inetLocalMailRecipient information if provided")
+	flag.StringVar(&mailHost, "mail-host", "", "Optional, define inetLocalMailRecipient attributes if provided")
 	flag.StringVar(&writeResultTo, "save-to", "", "Optional, path to a file to save LDIF result if provided")
 	flag.IntVar(&uidBelow, "ignore-uid-below", defaultBelow, fmt.Sprintf("Specify the minimum UID to consider retrieving, default is %d", defaultBelow))
 	flag.IntVar(&uidAbove, "ignore-uid-above", defaultAbove, fmt.Sprintf("Specify the maximum UID to consider retrieving, default is %d", defaultAbove))
 	flag.IntVar(&gidBelow, "ignore-gid-below", defaultBelow, fmt.Sprintf("Specify the minimum GID to consider retrieving, default is %d", defaultBelow))
 	flag.IntVar(&gidAbove, "ignore-gid-above", defaultAbove, fmt.Sprintf("Specify the maximum GID to consider retrieving, default is %d", defaultAbove))
+	flag.BoolVar(&useExtended, "use-extended", false, "Uses the LDAP inetOrgPerson class for extended attributes, otherwise Account will be used by default")
 	flag.Parse()
 
 	shadowDB, err := shadow.ReadDB()
@@ -67,7 +69,13 @@ func main() {
 	}
 
 	for _, entry := range passwdDB {
-		dump := entry.ToAccountLDIF(baseDN)
+		var dump []string
+
+		if useExtended {
+			dump = entry.ToPersonLDIF(dnsDomain, mailHost, baseDN)
+		} else {
+			dump = entry.ToAccountLDIF(baseDN)
+		}
 
 		if writeResultTo != "" {
 			fileWriter.WriteString(strings.Join(dump, "\n"))
