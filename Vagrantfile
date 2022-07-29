@@ -23,7 +23,7 @@ Vagrant.configure('2') do |config|
   config.vm.provision 'shell', inline: 'yum makecache fast && yum upgrade -y && yum install python3 tree mailx -y'
 
   config.vm.provision :ansible do |ansible|
-    ansible.playbook = 'ntp.yaml'
+    ansible.playbook = 'network.yaml'
     ansible.config_file = 'ansible.cfg'
   end
 

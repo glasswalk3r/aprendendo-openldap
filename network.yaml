@@ -3,6 +3,7 @@
   become: 'yes'
   roles:
     - geerlingguy.ntp
+    - static_network
   vars:
     ntp_timezone: America/Sao_Paulo
     ntp_enabled: true
