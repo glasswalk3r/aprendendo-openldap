@@ -41,7 +41,8 @@ func TestToAccountLDIF(t *testing.T) {
 	assert.Nilf(t, err, "Unexpected error: '%s'", err)
 	expected := []string{
 		"dn: uid=alceu,ou=People,dc=foobar,dc=org",
-		"uid: alceu", "loginShell: /bin/bash",
+		"uid: alceu",
+		"loginShell: /bin/bash",
 		"uidNumber: 1000",
 		"gidNumber: 1000",
 		"homeDirectory: /home/alceu",
@@ -52,4 +53,59 @@ func TestToAccountLDIF(t *testing.T) {
 		"gecos: Alceu Rodrigues de Freitas Junior,571,+551155422748,+551155422748",
 	}
 	assert.EqualValues(t, expected, users[0].ToAccountLDIF("dc=foobar,dc=org"))
+}
+
+func TestToPersonLDIF(t *testing.T) {
+	users, err := ReadDBFromFile(1000, 2000, 1000, 2000, mockDBFilename)
+	assert.Nilf(t, err, "Unexpected error: '%s'", err)
+	expected := []string{
+		"dn: uid=alceu,ou=People,dc=foobar,dc=org",
+		"uid: alceu",
+		"mail: alceu@foobar.org",
+		"telephoneNumber: +551155422748",
+		"roomNumber: 571",
+		"homePhone: +551155422748",
+		"givenName: Alceu",
+		"sn: Rodrigues de Freitas Junior",
+		"cn: Alceu Rodrigues de Freitas Junior",
+		"objectClass: posixAccount",
+		"objectClass: top",
+		"objectClass: person",
+		"objectClass: organizationalPerson",
+		"objectClass: inetOrgPerson",
+		"loginShell: /bin/bash",
+		"uidNumber: 1000",
+		"gidNumber: 1000",
+		"homeDirectory: /home/alceu",
+	}
+	assert.EqualValues(t, expected, users[0].ToPersonLDIF("foobar.org", "", "dc=foobar,dc=org"))
+}
+
+func TestToPersonLDIFWithMailHost(t *testing.T) {
+	users, err := ReadDBFromFile(1000, 2000, 1000, 2000, mockDBFilename)
+	assert.Nilf(t, err, "Unexpected error: '%s'", err)
+	expected := []string{
+		"dn: uid=alceu,ou=People,dc=foobar,dc=org",
+		"uid: alceu",
+		"mail: alceu@foobar.org",
+		"telephoneNumber: +551155422748",
+		"roomNumber: 571",
+		"homePhone: +551155422748",
+		"givenName: Alceu",
+		"sn: Rodrigues de Freitas Junior",
+		"cn: Alceu Rodrigues de Freitas Junior",
+		"mailRoutingAddress: alceu@mailer.foobar.org",
+		"mailHost: mailer.foobar.org",
+		"objectClass: inetLocalMailRecipient",
+		"objectClass: posixAccount",
+		"objectClass: top",
+		"objectClass: person",
+		"objectClass: organizationalPerson",
+		"objectClass: inetOrgPerson",
+		"loginShell: /bin/bash",
+		"uidNumber: 1000",
+		"gidNumber: 1000",
+		"homeDirectory: /home/alceu",
+	}
+	assert.EqualValues(t, expected, users[0].ToPersonLDIF("foobar.org", "mailer.foobar.org", "dc=foobar,dc=org"))
 }

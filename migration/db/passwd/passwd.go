@@ -124,67 +124,52 @@ Expect as parameters:
 */
 func (e *DBEntry) ToPersonLDIF(dnsDomain, mailHost, baseDN string) []string {
 	// TODO: try refactoring by using append() instead
-	var dump [20]string
-	dump[0] = fmt.Sprintf("dn: uid=%s,ou=People,%s", e.User, baseDN)
-	dump[1] = fmt.Sprintf("uid: %s", e.User)
-	lastAdded := 1
-	objectClasses := []string{"posixAccount", "top", "person", "organizationalPerson", "inetOrgPerson"}
+	dump := []string{
+		fmt.Sprintf("dn: uid=%s,ou=People,%s", e.User, baseDN),
+		fmt.Sprintf("uid: %s", e.User),
+		fmt.Sprintf("mail: %s@%s", e.User, dnsDomain),
+	}
 
 	if e.GECOS.Raw != "" {
 		if e.GECOS.WorkPhone != "" {
-			lastAdded++
-			dump[lastAdded] = fmt.Sprintf("telephoneNumber: %s", e.GECOS.WorkPhone)
+			dump = append(dump, fmt.Sprintf("telephoneNumber: %s", e.GECOS.WorkPhone))
 		}
 
 		if e.GECOS.Office != "" {
-			lastAdded++
-			dump[lastAdded] = fmt.Sprintf("roomNumber: %s", e.GECOS.Office)
+			dump = append(dump, fmt.Sprintf("roomNumber: %s", e.GECOS.Office))
 		}
 
 		if e.GECOS.HomePhone != "" {
-			lastAdded++
-			dump[lastAdded] = fmt.Sprintf("homePhone: %s", e.GECOS.HomePhone)
+			dump = append(dump, fmt.Sprintf("homePhone: %s", e.GECOS.HomePhone))
 		}
 
 		if e.GECOS.FullName != "" {
-			lastAdded++
 			pn := e.GECOS.SplitName()
-			dump[lastAdded] = fmt.Sprintf("givenName: %s", pn.GivenName)
-			lastAdded++
-			dump[lastAdded] = fmt.Sprintf("sn: %s", pn.Surname)
-			lastAdded++
-			dump[lastAdded] = fmt.Sprintf("cn: %s", e.GECOS.FullName)
-			lastAdded++
-			dump[lastAdded] = fmt.Sprintf("mail: %s@%s", e.User, dnsDomain)
-
-			if mailHost != "" {
-				lastAdded++
-				dump[lastAdded] = fmt.Sprintf("mailRoutingAddress: %s@%s", e.User, mailHost)
-				lastAdded++
-				dump[lastAdded] = fmt.Sprintf("mailHost: %s", mailHost)
-				lastAdded++
-				dump[lastAdded] = "objectClass: inetLocalMailRecipient"
-			}
+			dump = append(dump, fmt.Sprintf("givenName: %s", pn.GivenName))
+			dump = append(dump, fmt.Sprintf("sn: %s", pn.Surname))
+			dump = append(dump, fmt.Sprintf("cn: %s", e.GECOS.FullName))
 		}
 	} else {
-		lastAdded++
-		dump[lastAdded] = fmt.Sprintf("cn: %s", e.User)
+		dump = append(dump, fmt.Sprintf("cn: %s", e.User))
 	}
+
+	if mailHost != "" {
+		dump = append(dump, fmt.Sprintf("mailRoutingAddress: %s@%s", e.User, mailHost))
+		dump = append(dump, fmt.Sprintf("mailHost: %s", mailHost))
+		dump = append(dump, "objectClass: inetLocalMailRecipient")
+	}
+
+	objectClasses := []string{"posixAccount", "top", "person", "organizationalPerson", "inetOrgPerson"}
 
 	for _, value := range objectClasses {
-		lastAdded++
-		dump[lastAdded] = fmt.Sprintf("objectClass: %s", value)
+		dump = append(dump, fmt.Sprintf("objectClass: %s", value))
 	}
 
-	lastAdded++
-	dump[lastAdded] = fmt.Sprintf("loginShell: %s", e.Shell)
-	lastAdded++
-	dump[lastAdded] = fmt.Sprintf("uidNumber: %d", e.UID)
-	lastAdded++
-	dump[lastAdded] = fmt.Sprintf("gidNumber: %d", e.GID)
-	lastAdded++
-	dump[lastAdded] = fmt.Sprintf("homeDirectory: %s", e.HomeDir)
-	return dump[:lastAdded+1]
+	dump = append(dump, fmt.Sprintf("loginShell: %s", e.Shell))
+	dump = append(dump, fmt.Sprintf("uidNumber: %d", e.UID))
+	dump = append(dump, fmt.Sprintf("gidNumber: %d", e.GID))
+	dump = append(dump, fmt.Sprintf("homeDirectory: %s", e.HomeDir))
+	return dump
 }
 
 /*
