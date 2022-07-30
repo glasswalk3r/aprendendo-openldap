@@ -2,6 +2,7 @@
 
 base_dn = 'dc=local,dc=br'
 ldap_server = 'master.local.br'
+admin_pass = '123456'
 
 Vagrant.configure('2') do |config|
   config.vm.box = 'roboxes/centos7'
@@ -46,6 +47,11 @@ Vagrant.configure('2') do |config|
   config.vm.provision :ansible do |ansible|
     ansible.playbook = 'openldap.yaml'
     ansible.config_file = 'ansible.cfg'
+    ansible.host_vars = {
+      'master' => {
+        'admin_pass' => admin_pass
+      }
+    }
   end
 
   config.vm.define 'master' do |m|
@@ -59,6 +65,11 @@ Vagrant.configure('2') do |config|
     m.vm.provision :ansible do |ansible|
       ansible.playbook = 'master/main.yaml'
       ansible.config_file = 'ansible.cfg'
+      ansible.host_vars = {
+        'master' => {
+          'admin_pass' => admin_pass
+        }
+      }
     end
   end
 
