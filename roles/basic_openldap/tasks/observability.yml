@@ -52,10 +52,12 @@
     owner: root
     group: root
     mode: '0644'
-- name: Check if audit log is already configured
-  ansible.builtin.command: ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b 'olcOverlay={0}auditlog,olcDatabase={2}hdb,cn=config'  # yamllint disable-line rule:line-length
-  ignore_errors: 'yes'
+- name: Check if auditlog is already configured
+  ansible.builtin.command: ldapsearch -L -Q -Y EXTERNAL -H ldapi:/// -b olcDatabase={2}hdb,cn=config olcOverlay=auditlog  # yamllint disable-line rule:line-length
   register: audit_logging_check
+- name: Showing last line output from ldapsearch
+  ansible.builtin.debug:
+    msg: '{{ audit_logging_check.stdout_lines[-1] }}'
 - block:
     - name: Create audit log directory
       ansible.builtin.file:
@@ -81,5 +83,4 @@
         owner: root
         group: root
         mode: '0644'
-  # exit code for "no such object" error
-  when: audit_logging_check.rc == 32
+  when: 'audit_logging_check.stdout_lines[-1] == "# numResponses: 1"'
