@@ -71,7 +71,8 @@ Vagrant.configure('2') do |config|
       ansible.host_vars = {
         'master' => {
           'admin_pass' => admin_pass,
-          'sync_password' => sync_password
+          'sync_password' => sync_password,
+          'admin_dn' => admin_dn
         }
       }
     end
