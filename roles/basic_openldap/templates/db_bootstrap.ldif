@@ -1,7 +1,7 @@
 dn: olcDatabase={2}hdb,cn=config
 changetype: modify
 replace: olcSuffix
-olcSuffix: dc=local,dc=br
+olcSuffix: {{ base_dn }}
 
 dn: olcDatabase={2}hdb,cn=config
 changetype: modify

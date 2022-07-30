@@ -34,7 +34,7 @@
 - name: Loading bootstrap data
   ansible.builtin.command: 'ldapadd -Y EXTERNAL -H ldapi:/// -f {{ bootstrap_data }}'  # yamllint disable-line rule:line-length
 - name: 'Testing if seed data is already in place (idempotence)'
-  ansible.builtin.command: ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b dc=local,dc=br 'objectclass=organizationalUnit'  # yamllint disable-line rule:line-length
+  ansible.builtin.command: ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b {{ base_dn }} 'objectclass=organizationalUnit'  # yamllint disable-line rule:line-length
   ignore_errors: 'yes'
   register: seed_data_check
 - block:

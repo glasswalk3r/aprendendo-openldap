@@ -1,4 +1,4 @@
-dn: dc=local,dc=br
+dn: {{ base_dn }}
 dc: local
 objectClass: top
 objectClass: domain
@@ -8,12 +8,12 @@ objectClass: organizationalRole
 cn: Manager
 description: LDAP Manager
 
-dn: ou=People,dc=local,dc=br
+dn: ou=People,{{ base_dn }}
 ou: People
 objectClass: top
 objectClass: organizationalUnit
 
-dn: ou=Group,dc=local,dc=br
+dn: ou=Group,{{ base_dn }}
 ou: Group
 objectClass: top
 objectClass: organizationalUnit

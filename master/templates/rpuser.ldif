@@ -1,4 +1,4 @@
-dn: uid=rpuser,dc=local,dc=br
+dn: uid=rpuser,{{ base_dn }}
 objectClass: simpleSecurityObject
 objectclass: account
 uid: rpuser
