@@ -3,6 +3,7 @@
 dns_domain = 'local.br'
 base_dn = 'dc=local,dc=br'
 master_ldap_server = "master.#{dns_domain}"
+slave_ldap_server = "slave.#{dns_domain}"
 admin_pass = '123456'
 sync_password = '654321'
 admin_dn = "cn=Manager,#{base_dn}"
@@ -48,18 +49,30 @@ Vagrant.configure('2') do |config|
   # enable debugging Ansible configuring tasks
   # ENV['ANSIBLE_VERBOSITY'] = '3'
 
-  # for both master and slave
+  # DRY
+  openldap_role_vars = {
+    'admin_pass' => admin_pass,
+    'admin_dn' => admin_dn,
+    'base_dn' => base_dn
+  }
+
   config.vm.provision :ansible do |ansible|
     ansible.playbook = 'openldap.yaml'
     ansible.config_file = 'ansible.cfg'
     ansible.host_vars = {
-      'master' => {
-        'admin_pass' => admin_pass,
-        'admin_dn' => admin_dn,
-        'base_dn' => base_dn
-      }
+      'master' => openldap_role_vars,
+      'slave' => openldap_role_vars
     }
   end
+
+  # DRY
+  master_slave_vars = {
+    'admin_pass' => admin_pass,
+    'sync_password' => sync_password,
+    'admin_dn' => admin_dn,
+    'base_dn' => base_dn,
+    'replication_user' => replication_user
+  }
 
   config.vm.define 'master' do |m|
     m.vm.provider 'virtualbox' do |vb|
@@ -73,15 +86,26 @@ Vagrant.configure('2') do |config|
       ansible.playbook = 'master/main.yaml'
       ansible.config_file = 'ansible.cfg'
       ansible.host_vars = {
-        'master' => {
-          'admin_pass' => admin_pass,
-          'sync_password' => sync_password,
-          'admin_dn' => admin_dn,
-          'base_dn' => base_dn,
-          'replication_user' => replication_user
-        }
+        'master' => master_slave_vars
       }
     end
+  end
+
+  config.vm.define 'slave' do |m|
+    m.vm.provider 'virtualbox' do |vb|
+      vb.name = 'slave'
+    end
+    m.vm.hostname = slave_ldap_server
+    m.vm.network 'private_network', ip: '192.168.56.81'
+    m.vm.network 'forwarded_port', guest: 389, host: 4389, host_ip: '127.0.0.1', id: 'ldap'
+
+    # m.vm.provision :ansible do |ansible|
+    #   ansible.playbook = 'slave/main.yaml'
+    #   ansible.config_file = 'ansible.cfg'
+    #   ansible.host_vars = {
+    #     'master' => master_slave_vars
+    #   }
+    # end
   end
 
   config.vm.define 'client' do |c|

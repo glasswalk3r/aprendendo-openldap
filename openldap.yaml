@@ -1,5 +1,5 @@
 ---
-- hosts: master
+- hosts: master,slave
   become: 'yes'
   roles:
     - basic_openldap
