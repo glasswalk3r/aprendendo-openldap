@@ -54,7 +54,7 @@
         owner: root
         group: root
         mode: '0400'
-    - name: Loading syncprov overlay configuration
+    - name: Loading the Sync Provider to slapd configuration
       ansible.builtin.command: 'ldapadd -Y EXTERNAL -H ldapi:/// -f {{ syncprov_config }}'  # yamllint disable-line rule:line-length
 
     - name: 'Testing if replication user configuration is already in place (idempotence)'  # yamllint disable-line rule:line-length
