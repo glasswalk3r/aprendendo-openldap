@@ -23,13 +23,13 @@ problema é exclusivamente seu. ☺
 - Ansible versão 6.0.0 ou maior
 - Vagrant versão 2.2.19 ou maior
 
-O uso de um *virtual environment* do Python é recomendado.
+O uso de um *virtual environment* do Python é recomendado para o Ansible.
 
 ## Como usar
 
 Para evitar problemas devido a resolução de nomes é necessário iniciar primeiro
 a VM `vinfra`, para que seja configurada primeiro e as demais VM's possam fazer
-uso da mesma para evitar problemas ao baixar pacotes RPM:
+uso da mesma ao tentar baixar pacotes RPM:
 
 ```
 $ vagrant up vinfra
@@ -38,10 +38,10 @@ $ vagrant up vinfra
 Após tudo funcionar como o esperado, o restante poderá ser criado:
 
 ```
-$ vagrant vinfra
+$ vagrant up
 ```
 
-Se quiser repetir as configurações para alguma VM em específico, rode
+Se quiser repetir as configurações para alguma VM em específico, execute
 `vagrant provision`. Vide a ajuda *online* para esta opção para maiores
 detalhes.
 
