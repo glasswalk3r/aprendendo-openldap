@@ -3,7 +3,7 @@ dc: local
 objectClass: top
 objectClass: domain
 
-dn: cn=Manager,dc=local,dc=br
+dn: {{ admin_dn }}
 objectClass: organizationalRole
 cn: Manager
 description: LDAP Manager

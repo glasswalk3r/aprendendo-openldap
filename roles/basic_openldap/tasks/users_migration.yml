@@ -14,6 +14,6 @@
     - name: Exports data from /etc/passwd and /etc/shadow
       ansible.builtin.command: '{{ migrate_bin }} -base-dn dc=local,dc=br -dns-domain local.br -save-to {{ users }}'  # yamllint disable-line rule:line-length
     - name: Load users into OpenLDAP
-      ansible.builtin.command: 'ldapadd -x -w {{ admin_pass }} -D cn=Manager,dc=local,dc=br -f {{ users }}'  # yamllint disable-line rule:line-length
+      ansible.builtin.command: 'ldapadd -x -w {{ admin_pass }} -D {{ admin_dn }} -f {{ users }}'  # yamllint disable-line rule:line-length
   # exit code for "no such object" error
   when: users_check.rc == 32

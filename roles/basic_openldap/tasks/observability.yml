@@ -5,14 +5,14 @@
   register: monitor_access_check
 - block:
     - name: Monitor acess configuration
-      ansible.builtin.copy:
+      ansible.builtin.template:
         src: files/monitor.ldif
-        dest: /root/monitor.ldif
+        dest: '{{ monitor_ldif }}'
         owner: ldap
         group: ldap
         mode: '0644'
     - name: apply LDIF
-      ansible.builtin.command: ldapmodify -Y EXTERNAL -H ldapi:/// -f /root/monitor.ldif  # yamllint disable-line rule:line-length
+      ansible.builtin.command: ldapmodify -Y EXTERNAL -H ldapi:/// -f {{ monitor_ldif }}  # yamllint disable-line rule:line-length
   # exit code for "no such object" error
   when: monitor_access_check.rc == 32
 - name: Copy logging configuration for OpenLDAP

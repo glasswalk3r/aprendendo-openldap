@@ -63,7 +63,7 @@
       register: rpuser_check
     - block:
         - name: Generate the hashed password for OpenLDAP replication user
-          ansible.builtin.command: 'slappasswd -s 654321'
+          ansible.builtin.command: 'slappasswd -s {{ sync_password }}'
           register: rpuser_password
         - name: Create a LDIF file with replication user configuration
           ansible.builtin.template:
@@ -73,5 +73,5 @@
             group: root
             mode: '0400'
         - name: Load LDIF into OpenLDAP
-          ansible.builtin.command: 'ldapadd -x -w {{ admin_pass }} -D cn=Manager,dc=local,dc=br -f {{ rpuser_ldif }}'  # yamllint disable-line rule:line-length
+          ansible.builtin.command: 'ldapadd -x -w {{ admin_pass }} -D {{ admin_dn }} -f {{ rpuser_ldif }}'  # yamllint disable-line rule:line-length
       when: rpuser_check.rc == 32  # exit code for "no such object" error

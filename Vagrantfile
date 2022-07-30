@@ -3,6 +3,8 @@
 base_dn = 'dc=local,dc=br'
 ldap_server = 'master.local.br'
 admin_pass = '123456'
+sync_password = '654321'
+admin_dn = 'cn=Manager,dc=local,dc=br'
 
 Vagrant.configure('2') do |config|
   config.vm.box = 'roboxes/centos7'
@@ -49,7 +51,8 @@ Vagrant.configure('2') do |config|
     ansible.config_file = 'ansible.cfg'
     ansible.host_vars = {
       'master' => {
-        'admin_pass' => admin_pass
+        'admin_pass' => admin_pass,
+        'admin_dn' => admin_dn
       }
     }
   end
@@ -67,7 +70,8 @@ Vagrant.configure('2') do |config|
       ansible.config_file = 'ansible.cfg'
       ansible.host_vars = {
         'master' => {
-          'admin_pass' => admin_pass
+          'admin_pass' => admin_pass,
+          'sync_password' => sync_password
         }
       }
     end

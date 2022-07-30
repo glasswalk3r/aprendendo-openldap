@@ -6,3 +6,4 @@ bootstrap_data: '/root/db_bootstrap.ldif'
 log_dir: /var/log/openldap
 ldap_audit_log: '{{ log_dir }}/audit.log'
 ldap_log: /var/log/openldap.log
+monitor_ldif: /root/monitor.ldif

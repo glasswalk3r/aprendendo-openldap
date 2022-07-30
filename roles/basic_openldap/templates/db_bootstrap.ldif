@@ -6,7 +6,7 @@ olcSuffix: dc=local,dc=br
 dn: olcDatabase={2}hdb,cn=config
 changetype: modify
 replace: olcRootDN
-olcRootDN: cn=Manager,dc=local,dc=br
+olcRootDN: {{ admin_dn }}
 
 dn: olcDatabase={2}hdb,cn=config
 changetype: modify
@@ -23,8 +23,8 @@ olcDbIndex: objectClass eq
 dn: olcDatabase={2}hdb,cn=config
 changetype: modify
 replace: olcAccess
-olcAccess: to attrs=userPassword by dn="cn=Manager,dc=local,dc=br" write by anonymous auth by self write by * none
+olcAccess: to attrs=userPassword by dn="{{ admin_dn }}" write by anonymous auth by self write by * none
 olcAccess: to attrs=shadowLastChange by self write by * read
 olcAccess: to dn.base="" by * read
-olcAccess: to * by dn="cn=Manager,dc=local,dc=br" write by * read
-olcAccess: to * by self write by dn.base="cn=Manager,dc=local,dc=br" write by * read
+olcAccess: to * by dn="{{ admin_dn }}" write by * read
+olcAccess: to * by self write by dn.base="{{ admin_dn }}" write by * read

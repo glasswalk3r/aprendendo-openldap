@@ -39,10 +39,10 @@
   register: seed_data_check
 - block:
     - name: Copy seed data LDIF
-      ansible.builtin.copy:
+      ansible.builtin.template:
         src: 'files/seed_data.ldif'
         dest: '{{ seed_data }}'
         mode: '0400'
     - name: Load seed data into OpenLDAP
-      ansible.builtin.command: 'ldapadd -x -w {{ admin_pass }} -D cn=Manager,dc=local,dc=br -f {{ seed_data }}'  # yamllint disable-line rule:line-length
+      ansible.builtin.command: 'ldapadd -x -w {{ admin_pass }} -D {{ admin_dn }} -f {{ seed_data }}'  # yamllint disable-line rule:line-length
   when: seed_data_check.rc == 32  # exit code for "no such object" error
