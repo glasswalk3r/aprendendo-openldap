@@ -38,24 +38,41 @@
         password_expire_min: 15
       loop: '{{ users }}'
 
-    - name: Copying the syncprov overlay configuration
-      ansible.builtin.copy:
-        src: files/syncprov_overlay.ldif
-        dest: '{{ syncprov_overlay }}'
-        owner: root
-        group: root
-        mode: '0400'
-    - name: Loading syncprov overlay configuration
-      ansible.builtin.command: 'ldapadd -Y EXTERNAL -H ldapi:/// -f {{ syncprov_overlay }}'  # yamllint disable-line rule:line-length
-    - name: Copying the Sync Provider to slapd configuration
-      ansible.builtin.copy:
-        src: files/syncprov_config.ldif
-        dest: '{{ syncprov_config }}'
-        owner: root
-        group: root
-        mode: '0400'
-    - name: Loading the Sync Provider to slapd configuration
-      ansible.builtin.command: 'ldapadd -Y EXTERNAL -H ldapi:/// -f {{ syncprov_config }}'  # yamllint disable-line rule:line-length
+    - name: 'Check syncprov availability (idempotence)'
+      ansible.builtin.command: ldapsearch -L -Q -Y EXTERNAL -H ldapi:/// -b cn=config '(&(objectClass=olcModuleList)(olcModuleLoad=syncprov.la))'  # yamllint disable-line rule:line-length
+      register: syncprov_check
+    - name: ldapsearch result
+      ansible.builtin.debug:
+        msg: 'Last line of output is >{{ syncprov_check.stdout_lines[-1] }}<'
+    - block:
+        - name: Copying the syncprov overlay configuration
+          ansible.builtin.copy:
+            src: files/syncprov_overlay.ldif
+            dest: '{{ syncprov_overlay }}'
+            owner: root
+            group: root
+            mode: '0400'
+        - name: Loading syncprov overlay configuration
+          ansible.builtin.command: 'ldapadd -Y EXTERNAL -H ldapi:/// -f {{ syncprov_overlay }}'  # yamllint disable-line rule:line-length
+      when: 'syncprov_check.stdout_lines[-1] == "# numResponses: 1"'
+
+    - name: 'Check syncprov configuration availability (idempotence)'
+      ansible.builtin.command: ldapsearch -L -Q -Y EXTERNAL -H ldapi:/// -b cn=config '(&(objectClass=olcSyncProvConfig)(objectClass=olcOverlayConfig))'  # yamllint disable-line rule:line-length
+      register: syncprov_cfg_check
+    - name: ldapsearch result
+      ansible.builtin.debug:
+        msg: 'Last line of output is >{{ syncprov_check.stdout_lines[-1] }}<'
+    - block:
+        - name: Copying the Sync Provider to slapd configuration
+          ansible.builtin.copy:
+            src: files/syncprov_config.ldif
+            dest: '{{ syncprov_config }}'
+            owner: root
+            group: root
+            mode: '0400'
+        - name: Loading the Sync Provider to slapd configuration
+          ansible.builtin.command: 'ldapadd -Y EXTERNAL -H ldapi:/// -f {{ syncprov_config }}'  # yamllint disable-line rule:line-length
+      when: 'syncprov_cfg_check.stdout_lines[-1] == "# numResponses: 1"'
 
     - name: 'Testing if replication user configuration is already in place (idempotence)'  # yamllint disable-line rule:line-length
       ansible.builtin.command: ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b uid=rpuser,dc=local,dc=br description  # yamllint disable-line rule:line-length
