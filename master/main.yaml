@@ -4,6 +4,9 @@
   become: true
   gather_facts: 'no'
   vars:
+    rpuser_ldif: /root/rpuser.ldif
+    syncprov_overlay: /root/syncprov_overlay.ldif
+    syncprov_config: /root/syncprov_config.ldif
     users:
       - login: marcos
         fullname: Marcos Pitanga
@@ -34,3 +37,41 @@
         password_expire_max: 365
         password_expire_min: 15
       loop: '{{ users }}'
+
+    - name: Copying the syncprov overlay configuration
+      ansible.builtin.copy:
+        src: files/syncprov_overlay.ldif
+        dest: '{{ syncprov_overlay }}'
+        owner: root
+        group: root
+        mode: '0400'
+    - name: Loading syncprov overlay configuration
+      ansible.builtin.command: 'ldapadd -Y EXTERNAL -H ldapi:/// -f {{ syncprov_overlay }}'  # yamllint disable-line rule:line-length
+    - name: Copying the Sync Provider to slapd configuration
+      ansible.builtin.copy:
+        src: files/syncprov_config.ldif
+        dest: '{{ syncprov_config }}'
+        owner: root
+        group: root
+        mode: '0400'
+    - name: Loading syncprov overlay configuration
+      ansible.builtin.command: 'ldapadd -Y EXTERNAL -H ldapi:/// -f {{ syncprov_config }}'  # yamllint disable-line rule:line-length
+
+    - name: 'Testing if replication user configuration is already in place (idempotence)'  # yamllint disable-line rule:line-length
+      ansible.builtin.command: ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b uid=rpuser,dc=local,dc=br description  # yamllint disable-line rule:line-length
+      ignore_errors: 'yes'
+      register: rpuser_check
+    - block:
+        - name: Generate the hashed password for OpenLDAP replication user
+          ansible.builtin.command: 'slappasswd -s 654321'
+          register: rpuser_password
+        - name: Create a LDIF file with replication user configuration
+          ansible.builtin.template:
+            src: templates/rpuser.ldif
+            dest: '{{ rpuser_ldif }}'
+            owner: root
+            group: root
+            mode: '0400'
+        - name: Load LDIF into OpenLDAP
+          ansible.builtin.command: 'ldapadd -x -w {{ admin_pass }} -D cn=Manager,dc=local,dc=br -f {{ rpuser_ldif }}'  # yamllint disable-line rule:line-length
+      when: rpuser_check.rc == 32  # exit code for "no such object" error

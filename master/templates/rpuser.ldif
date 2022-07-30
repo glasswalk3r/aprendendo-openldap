@@ -1,0 +1,6 @@
+dn: uid=rpuser,dc=local,dc=br
+objectClass: simpleSecurityObject
+objectclass: account
+uid: rpuser
+description: Replication User
+userPassword: {{ rpuser_password }}
