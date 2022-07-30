@@ -11,6 +11,12 @@ problema é exclusivamente seu. ☺
 
 ## O que é gerenciado
 
+- Configuração de NTP (usando servidores para o Brasil) e rede para todas as VM's
+- vinfra: servidor DNS (via Bind)
+- master: servidor mestre do OpenLDAP, base local de usuários Linux
+- slave: servidor escravo do OpenLDAP
+- client: cliente OpenLDAP, usado para autenticar logins na mesma via PAM.
+
 ## Pré-requisitos
 
 - Virtualbox versão 6.1 ou maior
@@ -18,6 +24,26 @@ problema é exclusivamente seu. ☺
 - Vagrant versão 2.2.19 ou maior
 
 O uso de um *virtual environment* do Python é recomendado.
+
+## Como usar
+
+Para evitar problemas devido a resolução de nomes é necessário iniciar primeiro
+a VM `vinfra`, para que seja configurada primeiro e as demais VM's possam fazer
+uso da mesma para evitar problemas ao baixar pacotes RPM:
+
+```
+$ vagrant up vinfra
+```
+
+Após tudo funcionar como o esperado, o restante poderá ser criado:
+
+```
+$ vagrant vinfra
+```
+
+Se quiser repetir as configurações para alguma VM em específico, rode
+`vagrant provision`. Vide a ajuda *online* para esta opção para maiores
+detalhes.
 
 ## Referências sobre OpenLDAP
 
