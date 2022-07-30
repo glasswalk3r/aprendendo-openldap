@@ -3,18 +3,18 @@
   hosts: master
   become: true
   gather_facts: 'no'
-  # vars:
-  #   openssl_private_key: /etc/openldap/certs/priv.pem
-  #   openssl_certificate: /etc/openldap/certs/cert.pem
-  #   # TODO: read the password from an environment variable
-  #   admin_pass: '123456'
-  #   users: '/root/users.ldif'
-  #   seed_data: '/root/seed_data.ldif'
-  #   bootstrap_data: '/root/db_bootstrap.ldif'
-  #   migrate_bin: '/usr/local/sbin/migrate-passwd'
-  #   log_dir: /var/log/openldap
-  #   ldap_audit_log: '{{ log_dir }}/audit.log'
-  #   ldap_log: /var/log/openldap.log
+  vars:
+    users:
+      - login: marcos
+        fullname: Marcos Pitanga
+      - login: alves
+        fullname: Alves Silva
+      - login: arthur
+        fullname: Arthur Moura
+      - login: nathalia
+        fullname: Nathalia Lopes
+      - login: pinguim
+        fullname: Aptenodytes Forsteri
   tasks:
     - name: Manage local user group
       ansible.builtin.group:
@@ -30,12 +30,7 @@
         state: present
         groups:
           - it
-        password: '{{ item["password"] }}'
+        password: '{{ "abc@123" | password_hash("sha512", "mysecretsalt") }}'
         password_expire_max: 365
         password_expire_min: 15
-      loop:  # TODO: DRY for password
-        - {"login": "marcos", "fullname": "Marcos Pitanga", "password": "$5$VACmpTmOAHpIVLqZ$HNj.0nxssyymqCO1ALZ4I6bFjDEOKGNmmK8ByaA9q10"}  # yamllint disable-line rule:line-length
-        - {"login": "alves", "fullname": "Alves Silva", "password": "$5$VACmpTmOAHpIVLqZ$HNj.0nxssyymqCO1ALZ4I6bFjDEOKGNmmK8ByaA9q10"}  # yamllint disable-line rule:line-length
-        - {"login": "arthur", "fullname": "Arthur Moura", "password": "$5$VACmpTmOAHpIVLqZ$HNj.0nxssyymqCO1ALZ4I6bFjDEOKGNmmK8ByaA9q10"}  # yamllint disable-line rule:line-length
-        - {"login": "nathalia", "fullname": "Nathalia Lopes", "password": "$5$VACmpTmOAHpIVLqZ$HNj.0nxssyymqCO1ALZ4I6bFjDEOKGNmmK8ByaA9q10"}  # yamllint disable-line rule:line-length
-        - {"login": "pinguim", "fullname": "Aptenodytes Forsteri", "password": "$5$VACmpTmOAHpIVLqZ$HNj.0nxssyymqCO1ALZ4I6bFjDEOKGNmmK8ByaA9q10"}  # yamllint disable-line rule:line-length
+      loop: '{{ users }}'
