@@ -11,10 +11,11 @@ problema é exclusivamente seu. ☺
 
 ## O que é gerenciado
 
-- Configuração de NTP (usando servidores para o Brasil) e rede para todas as VM's
-- vinfra: servidor DNS (via Bind)
-- master: servidor mestre do OpenLDAP, base local de usuários Linux
-- slave: servidor escravo do OpenLDAP
+- Configuração de NTP (usando servidores para o Brasil) e rede para todas as
+VM's.
+- vinfra: servidor DNS (via Bind).
+- master: servidor mestre do OpenLDAP, base local de usuários Linux.
+- slave: servidor escravo do OpenLDAP (em progresso).
 - client: cliente OpenLDAP, usado para autenticar logins na mesma via PAM.
 
 ## Pré-requisitos
@@ -44,6 +45,28 @@ $ vagrant up
 Se quiser repetir as configurações para alguma VM em específico, execute
 `vagrant provision`. Vide a ajuda *online* para esta opção para maiores
 detalhes.
+
+## Problemas conhecidos
+
+### Idempotência
+
+É complicado gerenciar as configurações de overlays de forma idempotente: se
+executado o provisionamento com Ansible múltiplas vezes na mesma VM,
+configurações aplicadas no DN `config` também serão adicionadas múltiplas vezes.
+
+Tentar apagar a entrada já existente antes de adicionar uma nova também não
+funciona:
+
+```
+[root@master ~]# ldapdelete -Q -Y EXTERNAL -H ldapi:/// olcOverlay={7}syncprov,olcDatabase={2}hdb,cn=config
+ldap_delete: Server is unwilling to perform (53)
+```
+
+Vide
+[esta referência](https://openldap.org/lists/openldap-technical/201307/msg00219.html)
+(em inglês) para mais detalhes.
+
+O melhor, por enquanto, é destruir a VM e criar uma nova.
 
 ## Referências sobre OpenLDAP
 
