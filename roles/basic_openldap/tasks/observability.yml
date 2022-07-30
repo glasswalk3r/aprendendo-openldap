@@ -6,7 +6,7 @@
 - block:
     - name: Monitor acess configuration
       ansible.builtin.template:
-        src: files/monitor.ldif
+        src: templates/monitor.ldif
         dest: '{{ monitor_ldif }}'
         owner: ldap
         group: ldap

@@ -40,7 +40,7 @@
 - block:
     - name: Copy seed data LDIF
       ansible.builtin.template:
-        src: 'files/seed_data.ldif'
+        src: 'templates/seed_data.ldif'
         dest: '{{ seed_data }}'
         mode: '0400'
     - name: Load seed data into OpenLDAP
