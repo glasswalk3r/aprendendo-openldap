@@ -1,0 +1,48 @@
+---
+- name: Database configuration
+  ansible.builtin.copy:
+    src: /usr/share/openldap-servers/DB_CONFIG.example
+    remote_src: 'yes'
+    dest: /var/lib/ldap/DB_CONFIG
+    owner: ldap
+    group: ldap
+    mode: '0644'
+- name: Testing the database configuration
+  ansible.builtin.command: slaptest -u
+- name: 'Testing if required schemas are in place (idempotence)'
+  ansible.builtin.command: ldapsearch -LLL -Y EXTERNAL -H ldapi:/// -b cn={1}cosine,cn=schema,cn=config cn  # yamllint disable-line rule:line-length
+  ignore_errors: 'yes'
+  register: schema_search
+- name: Adding required LDAP schemas
+  ansible.builtin.command: 'ldapadd -Y EXTERNAL -H ldapi:/// -D cn=config -f /etc/openldap/schema/{{ item }}'  # yamllint disable-line rule:line-length
+  when: schema_search.rc == 32  # exit code for "no such object" error
+  loop:
+    - cosine.ldif
+    - nis.ldif
+    - inetorgperson.ldif
+    - misc.ldif
+- name: Generate the hashed password for OpenLDAP manager
+  ansible.builtin.command: 'slappasswd -s {{ admin_pass }}'
+  register: manager_password
+- name: Create a bootstrap LDIF file with OpenLDAP manager password
+  ansible.builtin.template:
+    src: templates/db_bootstrap.ldif
+    dest: '{{ bootstrap_data }}'
+    owner: root
+    group: root
+    mode: '0400'
+- name: Loading bootstrap data
+  ansible.builtin.command: 'ldapadd -Y EXTERNAL -H ldapi:/// -f {{ bootstrap_data }}'  # yamllint disable-line rule:line-length
+- name: 'Testing if seed data is already in place (idempotence)'
+  ansible.builtin.command: ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b dc=local,dc=br 'objectclass=organizationalUnit'  # yamllint disable-line rule:line-length
+  ignore_errors: 'yes'
+  register: seed_data_check
+- block:
+    - name: Copy seed data LDIF
+      ansible.builtin.copy:
+        src: 'files/seed_data.ldif'
+        dest: '{{ seed_data }}'
+        mode: '0400'
+    - name: Load seed data into OpenLDAP
+      ansible.builtin.command: 'ldapadd -x -w {{ admin_pass }} -D cn=Manager,dc=local,dc=br -f {{ seed_data }}'  # yamllint disable-line rule:line-length
+  when: seed_data_check.rc == 32  # exit code for "no such object" error

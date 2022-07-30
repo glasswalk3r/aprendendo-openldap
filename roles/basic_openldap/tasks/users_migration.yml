@@ -1,0 +1,19 @@
+---
+- name: 'Testing if users are already in place (idempotence)'
+  # TODO: DRY with parameters
+  ansible.builtin.command: ldapsearch -LLL -Q -Y EXTERNAL -H ldapi:/// -b uid=pinguim,ou=People,dc=local,dc=br  # yamllint disable-line rule:line-length
+  ignore_errors: 'yes'
+  register: users_check
+
+- block:
+    - name: Setup migrate-passwd
+      ansible.builtin.copy:
+        src: '../migration/migrate-passwd'
+        dest: '{{ migrate_bin }}'
+        mode: '0550'
+    - name: Exports data from /etc/passwd and /etc/shadow
+      ansible.builtin.command: '{{ migrate_bin }} -base-dn dc=local,dc=br -dns-domain local.br -save-to {{ users }}'  # yamllint disable-line rule:line-length
+    - name: Load users into OpenLDAP
+      ansible.builtin.command: 'ldapadd -x -w {{ admin_pass }} -D cn=Manager,dc=local,dc=br -f {{ users }}'  # yamllint disable-line rule:line-length
+  # exit code for "no such object" error
+  when: users_check.rc == 32

@@ -1,0 +1,10 @@
+---
+openssl_private_key: /etc/openldap/certs/priv.pem
+openssl_certificate: /etc/openldap/certs/cert.pem
+# TODO: read the password from an environment variable
+admin_pass: '123456'
+seed_data: '/root/seed_data.ldif'
+bootstrap_data: '/root/db_bootstrap.ldif'
+log_dir: /var/log/openldap
+ldap_audit_log: '{{ log_dir }}/audit.log'
+ldap_log: /var/log/openldap.log

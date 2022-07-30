@@ -1,0 +1,10 @@
+---
+- name: Enabling the slapd daemon
+  ansible.builtin.systemd:
+    name: slapd.service
+    state: started
+    enabled: 'yes'
+- name: Enabled DNS access from firewall
+  ansible.builtin.command: firewall-cmd --permanent --add-service=ldap
+- name: Reload firewalld rules
+  ansible.builtin.command: firewall-cmd --reload

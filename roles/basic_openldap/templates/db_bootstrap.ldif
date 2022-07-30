@@ -1,0 +1,30 @@
+dn: olcDatabase={2}hdb,cn=config
+changetype: modify
+replace: olcSuffix
+olcSuffix: dc=local,dc=br
+
+dn: olcDatabase={2}hdb,cn=config
+changetype: modify
+replace: olcRootDN
+olcRootDN: cn=Manager,dc=local,dc=br
+
+dn: olcDatabase={2}hdb,cn=config
+changetype: modify
+replace: olcRootPW
+olcRootPW: {{ manager_password.stdout }}
+
+dn: olcDatabase={2}hdb,cn=config
+changetype: modify
+replace: olcDbIndex
+olcDbIndex: uid eq,pres
+olcDbIndex: cn,sn,mail pres,eq,approx,sub
+olcDbIndex: objectClass eq
+
+dn: olcDatabase={2}hdb,cn=config
+changetype: modify
+replace: olcAccess
+olcAccess: to attrs=userPassword by dn="cn=Manager,dc=local,dc=br" write by anonymous auth by self write by * none
+olcAccess: to attrs=shadowLastChange by self write by * read
+olcAccess: to dn.base="" by * read
+olcAccess: to * by dn="cn=Manager,dc=local,dc=br" write by * read
+olcAccess: to * by self write by dn.base="cn=Manager,dc=local,dc=br" write by * read

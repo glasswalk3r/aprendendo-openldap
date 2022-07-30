@@ -1,0 +1,14 @@
+{{ ldap_audit_log }} {
+    missingok
+    notifempty
+    compress
+    daily
+    su ldap ldap
+    rotate 10
+    size=10M
+    sharedscripts
+    postrotate
+        # OpenLDAP logs via syslog, restart rsyslog if running
+        restart rsyslog
+    endscript
+}

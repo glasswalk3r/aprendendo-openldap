@@ -43,6 +43,11 @@ Vagrant.configure('2') do |config|
   # enable debugging Ansible configuring tasks
   # ENV['ANSIBLE_VERBOSITY'] = '3'
 
+  config.vm.provision :ansible do |ansible|
+    ansible.playbook = 'openldap.yaml'
+    ansible.config_file = 'ansible.cfg'
+  end
+
   config.vm.define 'master' do |m|
     m.vm.provider 'virtualbox' do |vb|
       vb.name = 'master'

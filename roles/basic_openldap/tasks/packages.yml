@@ -1,0 +1,11 @@
+---
+- name: Install packages
+  yum:
+    name:
+      - openldap
+      - openldap-clients
+      - openldap-servers
+      - migrationtools
+      - python36-cryptography  # for Ansible community.crypto
+    state: present
+    update_cache: 'yes'

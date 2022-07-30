@@ -1,0 +1,85 @@
+---
+- name: 'Testing if monitor access is already configured (idempotence)'
+  ansible.builtin.command: ldapsearch -LLL -Y EXTERNAL -H ldapi:/// -b cn=config '(olcDatabase={1}monitor)' -Q  # yamllint disable-line rule:line-length
+  ignore_errors: 'yes'
+  register: monitor_access_check
+- block:
+    - name: Monitor acess configuration
+      ansible.builtin.copy:
+        src: files/monitor.ldif
+        dest: /root/monitor.ldif
+        owner: ldap
+        group: ldap
+        mode: '0644'
+    - name: apply LDIF
+      ansible.builtin.command: ldapmodify -Y EXTERNAL -H ldapi:/// -f /root/monitor.ldif  # yamllint disable-line rule:line-length
+  # exit code for "no such object" error
+  when: monitor_access_check.rc == 32
+- name: Copy logging configuration for OpenLDAP
+  ansible.builtin.copy:
+    src: files/log_level.ldif
+    dest: /root/log_level.ldif
+    owner: root
+    group: root
+    mode: '0640'
+- name: Configure OpenLDAP logging level
+  ansible.builtin.command: ldapmodify -Y EXTERNAL -H ldapi:/// -f /root/log_level.ldif  # yamllint disable-line rule:line-length
+- name: Add local4 support in rsyslog
+  ansible.builtin.lineinfile:
+    path: /etc/rsyslog.conf
+    regex: '\*.info;mail\.none;authpriv\.none;cron\.none(;local4\.none)?\s+/var/log/messages'  # yamllint disable-line rule:line-length
+    line: '*.info;mail.none;authpriv.none;cron.none;local4.none    /var/log/messages'  # yamllint disable-line rule:line-length
+    state: present
+    owner: root
+    group: root
+    mode: '0644'
+- name: Configure rsyslog to accept OpenLDAP logging
+  ansible.builtin.template:
+    src: templates/rsyslog.conf
+    dest: /etc/rsyslog.d/openldap.conf
+    owner: root
+    group: root
+    mode: '0644'
+- name: Reloading the rsyslog daemon
+  ansible.builtin.systemd:
+    name: rsyslog.service
+    state: restarted
+    enabled: 'yes'
+- name: Configure logrotate for OpenLDAP logs
+  ansible.builtin.template:
+    src: templates/openldap_logrotate
+    dest: /etc/logrotate.d/openldap
+    owner: root
+    group: root
+    mode: '0644'
+- name: Check if audit log is already configured
+  ansible.builtin.command: ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b 'olcOverlay={0}auditlog,olcDatabase={2}hdb,cn=config'  # yamllint disable-line rule:line-length
+  ignore_errors: 'yes'
+  register: audit_logging_check
+- block:
+    - name: Create audit log directory
+      ansible.builtin.file:
+        path: '{{ log_dir }}'
+        # TODO: create variable for DRY, also sharing with template
+        owner: ldap
+        group: ldap
+        mode: '770'
+        state: directory
+    - name: Copy audit logging configuration
+      ansible.builtin.template:
+        src: templates/overlay-auditlog.ldif
+        dest: /root/overlay-auditlog.ldif
+        owner: root
+        group: root
+        mode: '0640'
+    - name: Add audit logging configuration to OpenLDAP database
+      ansible.builtin.command: ldapmodify -Y EXTERNAL -H ldapi:/// -f /root/overlay-auditlog.ldif  # yamllint disable-line rule:line-length
+    - name: Configure logrotate for OpenLDAP audit logs
+      ansible.builtin.template:
+        src: templates/openldap_audit_logrotate
+        dest: /etc/logrotate.d/openldap_audit
+        owner: root
+        group: root
+        mode: '0644'
+  # exit code for "no such object" error
+  when: audit_logging_check.rc == 32

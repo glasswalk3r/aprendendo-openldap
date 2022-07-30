@@ -1,0 +1,32 @@
+---
+- name: 'Create private key (RSA, 4096 bits)'
+  community.crypto.openssl_privatekey:
+    path: '{{ openssl_private_key }}'
+- name: Create certificate signing request (CSR) for self-signed certificate
+  community.crypto.openssl_csr_pipe:
+    privatekey_path: '{{ openssl_private_key }}'
+    common_name: master.local.br
+    organization_name: Foobar
+    country_name: BR
+    state_or_province_name: São Paulo
+    locality_name: São Paulo
+    email_address: glasswalk3r@yahoo.com.br
+    organizational_unit_name: Training
+  register: csr
+- name: Create self-signed certificate from CSR
+  community.crypto.x509_certificate:
+    path: '{{ openssl_certificate }}'
+    csr_content: '{{ csr.csr }}'
+    privatekey_path: '{{ openssl_private_key }}'
+    provider: selfsigned
+- name: Fixing permissions for TLS certificate
+  ansible.builtin.file:
+    path: '{{ openssl_certificate }}'
+    owner: ldap
+    group: ldap
+- name: Fixing permissions for private key
+  ansible.builtin.file:
+    path: '{{ openssl_private_key }}'
+    owner: ldap
+    group: ldap
+    mode: '0600'

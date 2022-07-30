@@ -1,0 +1,5 @@
+---
+- hosts: master
+  become: 'yes'
+  roles:
+    - basic_openldap

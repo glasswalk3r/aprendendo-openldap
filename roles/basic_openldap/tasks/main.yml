@@ -1,0 +1,13 @@
+---
+- name: Install OpenLDAP related RPM packages
+  ansible.builtin.include_tasks: packages.yml
+- name: Configure self-signed TLS certificate
+  ansible.builtin.include_tasks: tls.yml
+- name: Configures the OpenLDAP service
+  ansible.builtin.include_tasks: service.yml
+- name: Configures the OpenLDAP database
+  ansible.builtin.include_tasks: database.yml
+- name: Enables OpenLDAP overlays
+  ansible.builtin.include_tasks: overlays.yml
+- name: Configures observability for OpenLDAP
+  ansible.builtin.include_tasks: observability.yml
