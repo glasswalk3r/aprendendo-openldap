@@ -1,17 +1,21 @@
 ---
-- name: Copy audit configuration for LDAP operations
-  ansible.builtin.copy:
-    src: files/auditlog.ldif
-    dest: /root/auditlog.ldif
-    owner: root
-    group: root
-    mode: '0640'
-- name: Add audit configuration to OpenLDAP database
-  ansible.builtin.command: ldapadd -Y EXTERNAL -H ldapi:/// -f /root/auditlog.ldif  # yamllint disable-line rule:line-length
-  register: command_result
-  failed_when:
-    - command_result.rc != 0
-    - command_result.rc != 80  # already loaded
+- name: Check if audit is already configured
+  ansible.builtin.command: ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b olcOverlay={2}auditlog,olcDatabase={2}hdb,cn=config  # yamllint disable-line rule:line-length
+  ignore_errors: 'yes'
+  register: auditlog_check
+- block:
+    - name: Copy audit configuration for LDAP operations
+      ansible.builtin.copy:
+        src: files/auditlog.ldif
+        dest: /root/auditlog.ldif
+        owner: root
+        group: root
+        mode: '0640'
+    - name: Add audit configuration to OpenLDAP database
+      ansible.builtin.command: ldapadd -Y EXTERNAL -H ldapi:/// -f /root/auditlog.ldif  # yamllint disable-line rule:line-length
+  # exit code for "no such object" error
+  when: auditlog_check.rc == 32
+
 - name: Check if memberOf and refInt are already configured
   ansible.builtin.command: ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b 'olcOverlay={0}memberof,olcDatabase={2}hdb,cn=config'  # yamllint disable-line rule:line-length
   ignore_errors: 'yes'
