@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
+dns_domain = 'local.br'
 base_dn = 'dc=local,dc=br'
-ldap_server = 'master.local.br'
+master_ldap_server = "master.#{dns_domain}"
 admin_pass = '123456'
 sync_password = '654321'
 admin_dn = "cn=Manager,#{base_dn}"
@@ -35,7 +36,7 @@ Vagrant.configure('2') do |config|
     i.vm.provider 'virtualbox' do |vb|
       vb.name = 'vinfra'
     end
-    i.vm.hostname = 'vinfra.local.br'
+    i.vm.hostname = "vinfra.#{dns_domain}"
     i.vm.network 'private_network', ip: '192.168.56.85'
 
     i.vm.provision :ansible do |ansible|
@@ -64,7 +65,7 @@ Vagrant.configure('2') do |config|
     m.vm.provider 'virtualbox' do |vb|
       vb.name = 'master'
     end
-    m.vm.hostname = ldap_server
+    m.vm.hostname = master_ldap_server
     m.vm.network 'private_network', ip: '192.168.56.80'
     m.vm.network 'forwarded_port', guest: 389, host: 3389, host_ip: '127.0.0.1', id: 'ldap'
 
@@ -87,7 +88,7 @@ Vagrant.configure('2') do |config|
     c.vm.provider 'virtualbox' do |vb|
       vb.name = 'client'
     end
-    c.vm.hostname = 'client.local.br'
+    c.vm.hostname = "client.#{dns_domain}"
     c.vm.network 'private_network', ip: '192.168.56.82'
 
     c.vm.provision :ansible do |ansible|
@@ -96,7 +97,7 @@ Vagrant.configure('2') do |config|
       ansible.host_vars = {
         'client' => {
           'base_dn' => base_dn,
-          'ldap_server' => ldap_server
+          'master_ldap_server' => master_ldap_server
         }
       }
     end
