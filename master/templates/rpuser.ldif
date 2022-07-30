@@ -1,6 +1,6 @@
-dn: uid=rpuser,{{ base_dn }}
+dn: uid={{ replication_user }},{{ base_dn }}
 objectClass: simpleSecurityObject
 objectclass: account
-uid: rpuser
+uid: {{ replication_user }}
 description: Replication User
 userPassword: {{ rpuser_password }}

@@ -5,6 +5,7 @@ ldap_server = 'master.local.br'
 admin_pass = '123456'
 sync_password = '654321'
 admin_dn = "cn=Manager,#{base_dn}"
+replication_user = 'rpuser'
 
 Vagrant.configure('2') do |config|
   config.vm.box = 'roboxes/centos7'
@@ -46,6 +47,7 @@ Vagrant.configure('2') do |config|
   # enable debugging Ansible configuring tasks
   # ENV['ANSIBLE_VERBOSITY'] = '3'
 
+  # for both master and slave
   config.vm.provision :ansible do |ansible|
     ansible.playbook = 'openldap.yaml'
     ansible.config_file = 'ansible.cfg'
@@ -74,7 +76,8 @@ Vagrant.configure('2') do |config|
           'admin_pass' => admin_pass,
           'sync_password' => sync_password,
           'admin_dn' => admin_dn,
-          'base_dn' => base_dn
+          'base_dn' => base_dn,
+          'replication_user' => replication_user
         }
       }
     end

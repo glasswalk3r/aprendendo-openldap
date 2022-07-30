@@ -75,7 +75,7 @@
       when: 'syncprov_cfg_check.stdout_lines[-1] == "# numResponses: 1"'
 
     - name: 'Testing if replication user configuration is already in place (idempotence)'  # yamllint disable-line rule:line-length
-      ansible.builtin.command: ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b uid=rpuser,{{ base_dn }} description  # yamllint disable-line rule:line-length
+      ansible.builtin.command: ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b uid={{ replication_user }},{{ base_dn }} description  # yamllint disable-line rule:line-length
       ignore_errors: 'yes'
       register: rpuser_check
     - block:
