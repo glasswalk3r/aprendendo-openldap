@@ -7,6 +7,8 @@
     rpuser_ldif: /root/rpuser.ldif
     syncprov_overlay: /root/syncprov_overlay.ldif
     syncprov_config: /root/syncprov_config.ldif
+    migrate_bin: /usr/local/sbin/posix2ldap
+    temporary_ldif: /tmp/users.ldif
     users:
       - login: marcos
         fullname: Marcos Pitanga
@@ -19,24 +21,9 @@
       - login: pinguim
         fullname: Aptenodytes Forsteri
   tasks:
-    - name: Manage local user group
-      ansible.builtin.group:
-        name: it
-        state: present
-    - name: Manage Linux local users
-      ansible.builtin.user:
-        name: '{{ item["login"] }}'
-        comment: '{{ item["fullname"] }},571,+551155422748,+551155422748'
-        append: 'yes'
-        create_home: 'yes'
-        shell: /bin/bash
-        state: present
-        groups:
-          - it
-        password: '{{ "abc@123" | password_hash("sha512", "mysecretsalt") }}'
-        password_expire_max: 365
-        password_expire_min: 15
-      loop: '{{ users }}'
+    - name: Migrate local from POSIX database to OpenLDAP
+      ansible.builtin.include_tasks:
+        file: tasks/users_migration.yml
 
     - name: 'Check syncprov availability (idempotence)'
       ansible.builtin.command: ldapsearch -L -Q -Y EXTERNAL -H ldapi:/// -b cn=config '(&(objectClass=olcModuleList)(olcModuleLoad=syncprov.la))'  # yamllint disable-line rule:line-length

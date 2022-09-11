@@ -1,0 +1,50 @@
+---
+- name: Manage local user group
+  ansible.builtin.group:
+    name: it
+    state: present
+- name: Manage Linux local users
+  ansible.builtin.user:
+    name: '{{ item["login"] }}'
+    comment: '{{ item["fullname"] }},571,+551155422748,+551155422748'
+    append: 'yes'
+    create_home: 'yes'
+    shell: /bin/bash
+    state: present
+    groups:
+      - it
+    password: '{{ "abc@123" | password_hash("sha512", "mysecretsalt") }}'
+    password_expire_max: 365
+    password_expire_min: 15
+  loop: '{{ users }}'
+
+- name: 'Testing if users are already in place (idempotence)'
+  # TODO: DRY with parameters
+  ansible.builtin.command: ldapsearch -LLL -Q -Y EXTERNAL -H ldapi:/// -b uid=pinguim,ou=People,{{ base_dn }}  # yamllint disable-line rule:line-length
+  ignore_errors: 'yes'
+  register: users_check
+
+- block:
+    - name: Download posix2ldap
+      ansible.builtin.get_url:
+        url: https://github.com/glasswalk3r/posix2ldap/releases/download/v0.1.0/posix2ldap.gz
+        dest: '{{ migrate_bin }}.gz'
+        mode: '0400'
+    - name: Uncompress posix2ldap
+      ansible.builtin.command: 'gunzip {{ migrate_bin }}.gz'
+    - name: Change file ownership, group and permissions
+      ansible.builtin.file:
+        path: '{{ migrate_bin }}'
+        owner: root
+        group: root
+        mode: '0555'
+    - name: Exports data from /etc/passwd and /etc/shadow
+      ansible.builtin.command: '{{ migrate_bin }} -base-dn {{ base_dn }} -dns-domain local.br -save-to {{ temporary_ldif }}'  # yamllint disable-line rule:line-length
+    - name: Load users into OpenLDAP
+      ansible.builtin.command: 'ldapadd -x -w {{ admin_pass }} -D {{ admin_dn }} -f {{ temporary_ldif }}'  # yamllint disable-line rule:line-length
+    - name: 'Remove {{ temporary_ldif }}'
+      ansible.builtin.file:
+        path: '{{ temporary_ldif }}'
+        state: absent
+  # exit code for "no such object" error
+  when: users_check.rc == 32
