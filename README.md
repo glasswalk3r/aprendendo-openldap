@@ -18,6 +18,12 @@ VM's.
 - slave: servidor escravo do OpenLDAP (em progresso).
 - client: cliente OpenLDAP, usado para autenticar logins na mesma via PAM.
 
+## Situação atual do projeto
+
+Deve ser considerado como beta ainda.
+
+Faltam algumas coisas para serem implementadas.
+
 ## Pré-requisitos
 
 - Virtualbox versão 6.1 ou maior
@@ -74,3 +80,4 @@ O melhor, por enquanto, é destruir a VM e criar uma nova.
 Anahuac, em português.
 - [Documentação oficial](https://openldap.org/doc/), em inglês.
 - [LDAP for Rocket Scientists](https://www.zytrax.com/books/ldap/), em inglês.
+- [posix2ldap](https://github.com/glasswalk3r/posix2ldap)
