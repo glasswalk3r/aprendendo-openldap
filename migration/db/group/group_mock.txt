@@ -1,9 +1,0 @@
-clamav:x:137:
-etcd:x:138:
-mysql:x:140:
-sddm:x:131:
-sgx:x:139:
-_ssh:x:116:
-mongodb:x:141:mongodb
-openldap:x:142:
-foobar:x:1001:
