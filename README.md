@@ -1,7 +1,7 @@
 # Aprendendo OpenLDAP
 
-Este é um repositório foi criado para manter a estrutura de laboratório ensinada
-no treinamento online "Aprenda a Gerenciar Diretórios com openLDAP em Linux" do
+Este repositório foi criado para manter a estrutura de laboratório ensinada no
+treinamento online "Aprenda a Gerenciar Diretórios com openLDAP em Linux" do
 Marcos Pitanga.
 
 O conteúdo aqui disponível é **não-oficial**, e limita-se a automatizar todos os
